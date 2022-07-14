@@ -290,7 +290,13 @@ __global__ void SpikeBufferUpdate()
       // spike time matches connection group delay
       float height = SpikeBufferHeight[i_arr]; // spike multiplicity
       // deliver spike
-      SendSpike(i_spike_buffer, i_conn, height, ConnGroupNConn[ig]);
+      /////////////// TEMPORARY, REPLACE WITH CHECK IF NODE IS POISSON GEN
+      if (height<1.1) {
+	SendSpike(i_spike_buffer, i_conn, height, ConnGroupNConn[ig]);
+      }
+      else {
+	PoissonSendSpike(i_spike_buffer, i_conn, height, ConnGroupNConn[ig]);
+      }
       // increase index of the next conn. group that will emit this spike
       i_conn++;
       SpikeBufferConnIdx[i_arr] = i_conn;

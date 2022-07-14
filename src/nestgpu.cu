@@ -574,17 +574,24 @@ int NESTGPU::SimulationStep()
   }
 #endif
     
-  int n_spikes;
+  int n_spikes, n_poiss_spikes;
   time_mark = getRealTime();
+  gpuErrchk(cudaMemcpyAsync(&n_poiss_spikes, d_PoissonSpikeNum, sizeof(int),
+			    cudaMemcpyDeviceToHost));
   gpuErrchk(cudaMemcpy(&n_spikes, d_SpikeNum, sizeof(int),
 		       cudaMemcpyDeviceToHost));
 
-  ClearGetSpikeArrays();    
+  ClearGetSpikeArrays();
+  time_mark = getRealTime();
   if (n_spikes > 0) {
-    time_mark = getRealTime();
     NestedLoop::Run<0>(nested_loop_algo_, n_spikes, d_SpikeTargetNum);
-    NestedLoop_time_ += (getRealTime() - time_mark);
   }
+  if (n_poiss_spikes > 0) {
+    NestedLoop::Run<2>(nested_loop_algo_, n_poiss_spikes,
+		       d_PoissonSpikeTargetNum);
+  }
+  NestedLoop_time_ += (getRealTime() - time_mark);
+
   /*
   time_mark = getRealTime();
   for (unsigned int i=0; i<node_vect_.size(); i++) {
