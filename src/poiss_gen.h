@@ -46,7 +46,9 @@ const std::string poiss_gen_scal_param_name[] = {
 
 class poiss_gen : public BaseNeuron
 {
-  curandState *d_curand_state_;
+  float time_resolution_;
+  
+  //curandState *d_curand_state_;
  public:
   
   int Init(int i_node_0, int n_node, int n_port, int i_group,

@@ -501,8 +501,9 @@ class Network:
                 'weight': self.weight_ext,
                 'delay': self.net_dict['delay_poisson']}
 
+            # [self.poisson_bg_input[i]], target_pop,
             ngpu.Connect(
-                [self.poisson_bg_input[i]], target_pop,
+                self.poisson_bg_input[i:i+1], target_pop,
                 conn_dict_poisson, syn_dict_poisson)
 
     def __connect_thalamic_stim_input(self):
@@ -511,7 +512,8 @@ class Network:
             print('Connecting thalamic input.')
 
         # connect Poisson input to thalamic population
-        ngpu.Connect(self.poisson_th.ToList(), self.thalamic_population)
+        #ngpu.Connect(self.poisson_th.ToList(), self.thalamic_population)
+        ngpu.Connect(self.poisson_th, self.thalamic_population)
 
         # connect thalamic population to neuronal populations
         for i, target_pop in enumerate(self.pops):

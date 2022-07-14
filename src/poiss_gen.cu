@@ -33,12 +33,14 @@
 #include "utilities.h"
 #include "nestgpu.h"
 #include "neuron_models.h"
+#include "spike_buffer.h"
 #include "poiss_gen.h"
 #include "poiss_gen_variables.h"
 
 extern __constant__ NodeGroupStruct NodeGroupArray[];
 extern __device__ signed char *NodeGroupMap;
 
+/*
 __global__ void SetupPoissKernel(curandState *curand_state, uint64_t n_dir_conn,
 				 unsigned long long seed)
 {
@@ -81,7 +83,22 @@ __global__ void PoissGenSendSpikeKernel(curandState *curand_state, double t,
     }
   }
 }
+*/
 
+__global__ void poissGenUpdateKernel(int i_node_0, int n_node, double t,
+				     float time_step, float *param_arr,
+				     int n_param)
+{
+  int i_rel_node = threadIdx.x + blockIdx.x * blockDim.x;
+  if (i_rel_node < n_node) {
+    float *param = param_arr + n_param*i_rel_node;
+    double t_rel = t - origin;
+    if ((t_rel>=start) && (t_rel<=stop) && rate>0) {
+      int i_node = i_node_0 + i_rel_node;
+      PushSpike(i_node, time_step*rate);
+    }
+  }
+}
 
 int poiss_gen::Init(int i_node_0, int n_node, int /*n_port*/,
 		    int i_group, unsigned long long *seed)
@@ -103,8 +120,11 @@ int poiss_gen::Init(int i_node_0, int n_node, int /*n_port*/,
   return 0;
 }
 
-int poiss_gen::Calibrate(double, float)
+int poiss_gen::Calibrate(double, float time_res)
 {
+  time_resolution_ = time_res;
+
+  /*
   gpuErrchk(cudaMalloc(&d_curand_state_, n_dir_conn_*sizeof(curandState)));
 
   unsigned int grid_dim_x, grid_dim_y;
@@ -127,6 +147,7 @@ int poiss_gen::Calibrate(double, float)
   SetupPoissKernel<<<numBlocks, 1024>>>(d_curand_state_, n_dir_conn_, *seed_);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
+  */
   
   return 0;
 }
@@ -134,11 +155,16 @@ int poiss_gen::Calibrate(double, float)
 
 int poiss_gen::Update(long long it, double t1)
 {
+  poissGenUpdateKernel<<<(n_node_+1023)/1024, 1024>>>
+    (i_node_0_, n_node_, (double)time_resolution_*it, time_resolution_/1000.0,
+     param_arr_, n_param_);
+
   return 0;
 }
 
 int poiss_gen::SendDirectSpikes(double t, float time_step)
 {
+  /*
   unsigned int grid_dim_x, grid_dim_y;
   
   if (n_dir_conn_<65536*1024) { // max grid dim * max block dim
@@ -162,6 +188,7 @@ int poiss_gen::SendDirectSpikes(double t, float time_step)
   
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-
+  */
+  
   return 0;
 }

@@ -313,7 +313,7 @@ int NESTGPU::Calibrate()
   gpuErrchk( cudaDeviceSynchronize() );
   
   calibrate_flag_ = true;
-  BuildDirectConnections();
+  //BuildDirectConnections();
   // temporary
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
@@ -327,11 +327,23 @@ int NESTGPU::Calibrate()
   neural_time_ = t_min_;
   	    
   NodeGroupArrayInit();
-  
+
+  /*
   max_spike_num_ = (int)round(max_spike_num_fact_
                  * net_connection_->connection_.size()
   		 * net_connection_->MaxDelayNum());
+  */
+  max_spike_num_ = (int)round(max_spike_num_fact_
+			      * net_connection_->connection_.size()
+			      * 100);
+
   max_spike_num_ = (max_spike_num_>1) ? max_spike_num_ : 1;
+
+  printf("max_spike_num_fact_ %f\tnet_connection_->connection_.size() %ld\t"
+	 "net_connection_->MaxDelayNum() %d\tmax_spike_num_ %d\n",
+	 max_spike_num_fact_, net_connection_->connection_.size(),
+	 net_connection_->MaxDelayNum(), max_spike_num_);
+
 
   max_spike_per_host_ = (int)round(max_spike_per_host_fact_
                  * net_connection_->connection_.size()
@@ -573,6 +585,7 @@ int NESTGPU::SimulationStep()
     NestedLoop::Run<0>(nested_loop_algo_, n_spikes, d_SpikeTargetNum);
     NestedLoop_time_ += (getRealTime() - time_mark);
   }
+  /*
   time_mark = getRealTime();
   for (unsigned int i=0; i<node_vect_.size(); i++) {
     if (node_vect_[i]->has_dir_conn_) {
@@ -580,6 +593,7 @@ int NESTGPU::SimulationStep()
     }
   }
   poisson_generator_time_ += (getRealTime() - time_mark);
+  */
   time_mark = getRealTime();
   for (unsigned int i=0; i<node_vect_.size(); i++) {
     if (node_vect_[i]->n_port_>0) {
@@ -1318,6 +1332,8 @@ float *NESTGPU::RandomNormalClipped(size_t n, float mean, float stddev,
   return arr; 
 }
 
+
+/*
 int NESTGPU::BuildDirectConnections()
 {
   for (unsigned int iv=0; iv<node_vect_.size(); iv++) {
@@ -1355,6 +1371,7 @@ int NESTGPU::BuildDirectConnections()
 
   return 0;
 }
+*/
 
 std::vector<std::string> NESTGPU::GetIntVarNames(int i_node)
 {
