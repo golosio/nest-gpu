@@ -168,6 +168,63 @@ __global__ void PoissGenSendSpikeKernel(curandState *curand_state,
   }
 }
 
+
+__global__ void PoissGenSendSpikeKernel(curandState *curand_state,
+					long long time_idx,
+					float *mu_arr,
+					uint *poiss_key_array,
+					int64_t n_conn, int64_t i_conn_0,
+					int64_t block_size, int n_node,
+					int max_delay, double **target_pt)
+{
+  uint64_t blockId   = (uint64_t)blockIdx.y * gridDim.x + blockIdx.x;
+  uint64_t i_conn_rel = blockId * blockDim.x + threadIdx.x;
+  if (i_conn_rel >= n_conn) {
+    return;
+  }
+  uint source_delay = poiss_key_array[i_conn_rel];
+  int i_source = source_delay >> MaxPortNBits;
+  int i_delay = source_delay & PortMask;
+  int id = (int)((time_idx - i_delay + 1) % max_delay);
+  float mu = mu_arr[id*n_node + i_source];
+  int n = curand_poisson(curand_state+i_conn_rel, mu);
+  if (n>0) {
+    int64_t i_conn = i_conn_0 + i_conn_rel;
+    int i_block = (int)(i_conn / block_size);
+    int64_t i_block_conn = i_conn % block_size;
+    float weight = ConnectionArray[i_block][i_block_conn].weight;
+
+    double d_val = (double)(weight*n);
+    atomicAddDouble(target_pt[i_conn_rel], d_val);
+  }
+}
+
+
+__global__ void PoissGenSetTargetPtKernel(int64_t n_conn, int64_t i_conn_0,
+					  int64_t block_size,
+					  double **target_pt)
+{
+  uint64_t blockId   = (uint64_t)blockIdx.y * gridDim.x + blockIdx.x;
+  uint64_t i_conn_rel = blockId * blockDim.x + threadIdx.x;
+  if (i_conn_rel >= n_conn) {
+    return;
+  }
+  int64_t i_conn = i_conn_0 + i_conn_rel;
+  int i_block = (int)(i_conn / block_size);
+  int64_t i_block_conn = i_conn % block_size;
+  connection_struct conn = ConnectionArray[i_block][i_block_conn];
+  uint target_port = conn.target_port;
+  int i_target = target_port >> MaxPortNBits;
+  uint port = target_port & PortMask;
+  //float weight = conn.weight;
+
+  int i_group=NodeGroupMap[i_target];
+  int i = port*NodeGroupArray[i_group].n_node_ + i_target
+    - NodeGroupArray[i_group].i_node_0_;
+  target_pt[i_conn_rel] = &NodeGroupArray[i_group].get_spike_array_[i];
+}
+
+
 int poiss_gen::Init(int i_node_0, int n_node, int /*n_port*/,
 		    int i_group, unsigned long long *seed)
 {
@@ -277,11 +334,17 @@ int poiss_gen::SendDirectSpikes(long long time_idx)
     grid_dim_y = (n_conn_ + grid_dim_x*1024 -1) / (grid_dim_x*1024);
   }
   dim3 numBlocks(grid_dim_x, grid_dim_y);
+  /*
   PoissGenSendSpikeKernel<<<numBlocks, 1024>>>
     (d_curand_state_,
      time_idx, d_mu_arr_, d_poiss_key_array_,
-     n_conn_, i_conn0_,
+     n_conn_, i_conn_0_,
      h_ConnBlockSize, n_node_, max_delay_);
+  */
+  PoissGenSendSpikeKernel<<<numBlocks, 1024>>>
+    (d_curand_state_,
+     time_idx, d_mu_arr_, d_poiss_key_array_, n_conn_, i_conn_0_,
+     h_ConnBlockSize, n_node_, max_delay_, d_target_pt_);
 
   DBGCUDASYNC
 
@@ -360,25 +423,25 @@ int poiss_gen::buildDirectConnections()
   gpuErrchk(cudaMemcpy(h_poiss_num, poiss_conn::d_poiss_num,
 		       2*k*sizeof(int64_t), cudaMemcpyDeviceToHost));
 
-  i_conn0_ = 0;
-  int64_t i_conn1 = 0;
+  i_conn_0_ = 0;
+  int64_t i_conn_1 = 0;
   uint ib0 = 0;
   uint ib1 = 0;
   for (uint i=0; i<k; i++) {
     if (h_num0[i] < block_size) {
-      i_conn0_ = block_size*i + h_num0[i];
+      i_conn_0_ = block_size*i + h_num0[i];
       ib0 = i;
       break;
     }
   }
   for (uint i=0; i<k; i++) {
     if (h_num1[i] < block_size) {
-      i_conn1 = block_size*i + h_num1[i];
+      i_conn_1 = block_size*i + h_num1[i];
       ib1 = i;
       break;
     }
   }
-  n_conn_ = i_conn1 - i_conn0_;
+  n_conn_ = i_conn_1 - i_conn_0_;
   if (n_conn_>0) {
     gpuErrchk(cudaMalloc(&d_poiss_key_array_, n_conn_*sizeof(key_t)));
     
@@ -431,7 +494,10 @@ int poiss_gen::buildDirectConnections()
     PoissGenSubstractFirstNodeIndexKernel<<<numBlocks, 1024>>>
       (n_conn_, d_poiss_key_array_, i_node_0_);
     DBGCUDASYNC
-
+    gpuErrchk(cudaMalloc(&d_target_pt_, n_conn_*sizeof(double*)));
+    PoissGenSetTargetPtKernel<<<numBlocks, 1024>>>
+      (n_conn_, i_conn_0_, block_size, d_target_pt_);
+    DBGCUDASYNC
   }
 
   max_delay_ = 200;

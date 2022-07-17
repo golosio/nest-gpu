@@ -53,10 +53,11 @@ class poiss_gen : public BaseNeuron
 {
   curandState *d_curand_state_;
   uint *d_poiss_key_array_;
-  int64_t i_conn0_;
+  int64_t i_conn_0_;
   int64_t n_conn_;
   float *d_mu_arr_;
   int max_delay_;
+  double **d_target_pt_;
   
  public:
   
