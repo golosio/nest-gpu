@@ -199,10 +199,36 @@ __global__ void PoissGenSendSpikeKernel(curandState *curand_state,
   }
 }
 
+__global__ void PoissGenSendSpikeKernel(curandState *curand_state,
+					long long time_idx,
+					float *mu_arr,
+					uint *poiss_key_array,
+					int64_t n_conn, int n_node,
+					int max_delay, double **target_pt,
+					float *weight)
+{
+  uint64_t blockId   = (uint64_t)blockIdx.y * gridDim.x + blockIdx.x;
+  uint64_t i_conn_rel = blockId * blockDim.x + threadIdx.x;
+  if (i_conn_rel >= n_conn) {
+    return;
+  }
+  uint source_delay = poiss_key_array[i_conn_rel];
+  int i_source = source_delay >> MaxPortNBits;
+  int i_delay = source_delay & PortMask;
+  int id = (int)((time_idx - i_delay + 1) % max_delay);
+  float mu = mu_arr[id*n_node + i_source];
+  int n = curand_poisson(curand_state+i_conn_rel, mu);
+  if (n>0) {
+    double d_val = (double)(weight[i_conn_rel]*n);
+    atomicAddDouble(target_pt[i_conn_rel], d_val);
+  }
+}
+
 
 __global__ void PoissGenSetTargetPtKernel(int64_t n_conn, int64_t i_conn_0,
 					  int64_t block_size,
-					  double **target_pt)
+					  double **target_pt,
+					  float *weight)
 {
   uint64_t blockId   = (uint64_t)blockIdx.y * gridDim.x + blockIdx.x;
   uint64_t i_conn_rel = blockId * blockDim.x + threadIdx.x;
@@ -217,7 +243,8 @@ __global__ void PoissGenSetTargetPtKernel(int64_t n_conn, int64_t i_conn_0,
   int i_target = target_port >> MaxPortNBits;
   uint port = target_port & PortMask;
   //float weight = conn.weight;
-
+  weight[i_conn_rel] = conn.weight;
+  
   int i_group=NodeGroupMap[i_target];
   int i = port*NodeGroupArray[i_group].n_node_ + i_target
     - NodeGroupArray[i_group].i_node_0_;
@@ -341,11 +368,17 @@ int poiss_gen::SendDirectSpikes(long long time_idx)
      n_conn_, i_conn_0_,
      h_ConnBlockSize, n_node_, max_delay_);
   */
+  /*
   PoissGenSendSpikeKernel<<<numBlocks, 1024>>>
     (d_curand_state_,
      time_idx, d_mu_arr_, d_poiss_key_array_, n_conn_, i_conn_0_,
      h_ConnBlockSize, n_node_, max_delay_, d_target_pt_);
-
+  */
+  PoissGenSendSpikeKernel<<<numBlocks, 1024>>>
+    (d_curand_state_,
+     time_idx, d_mu_arr_, d_poiss_key_array_, n_conn_,
+     n_node_, max_delay_, d_target_pt_, d_weight_);
+  
   DBGCUDASYNC
 
   return 0;
@@ -495,8 +528,9 @@ int poiss_gen::buildDirectConnections()
       (n_conn_, d_poiss_key_array_, i_node_0_);
     DBGCUDASYNC
     gpuErrchk(cudaMalloc(&d_target_pt_, n_conn_*sizeof(double*)));
+    gpuErrchk(cudaMalloc(&d_weight_, n_conn_*sizeof(float)));
     PoissGenSetTargetPtKernel<<<numBlocks, 1024>>>
-      (n_conn_, i_conn_0_, block_size, d_target_pt_);
+      (n_conn_, i_conn_0_, block_size, d_target_pt_, d_weight_);
     DBGCUDASYNC
   }
 

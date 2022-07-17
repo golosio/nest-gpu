@@ -58,6 +58,7 @@ class poiss_gen : public BaseNeuron
   float *d_mu_arr_;
   int max_delay_;
   double **d_target_pt_;
+  float *d_weight_;
   
  public:
   
