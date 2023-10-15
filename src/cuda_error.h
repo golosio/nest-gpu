@@ -64,7 +64,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
   gpuAssert(cudaMalloc(dev_pt, n_bytes), __FILE__, __LINE__); }
 #else
 #define CUDAMALLOCCTRL(str, dev_pt, n_bytes) {				\
-         (unsigned long long)n_bytes, str, __FILE__,__LINE__);  \
   gpuAssert(cudaMalloc(dev_pt, n_bytes), __FILE__, __LINE__); }
 #endif
 
