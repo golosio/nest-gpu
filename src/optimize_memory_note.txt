@@ -1,0 +1,51 @@
+Define macros CUDAMALLOCASYNCCTRL e CUDAFREECTRL
+
+In OrganizeConnectionGroups remove arrays that are not strictly necessary,
+which are used only to access information quickly although this information is redundant.
+In particular what we need is:
+
+- (...) a 64 bit array with the index of the first connection of each group. The difference between consecutive elements is the number of connections in the group. Size: tot_conn_group_num
+
+- (...) a 64 bit array, size n_nodes, which for each node specifies the index of the first connection group of this node. The difference between consecutive elements is the number of connection groups of the node
+
+Problem: what to do with the key for sorting connection groups?
+Maybe use another approach, i.e. organize connection groups in blocks,
+same size (num. of elements) as connection blocks, flag the first connection of each group, use the prefix-scan approach to eliminate the rest,
+i.e. prefix scan the complement to find the positions.
+
+Try NOT to use:
+(d_)ConnGroupNum -> ConnGroupIdx0[i_node+1] - ConnGroupIdx0[i_node]
+d_conn_group_key
+(d_)ConnGroupNConn -> ConnGroupIConn0[i_group+1] - ConnGroupIConn0[i_group]
+(d_)ConnGroupDelay ricavare:
+i_conn0 = ConnGroupIConn0[i_group]
+delay = SourceDelay[i_conn0] & PortMask
+
+da modificare:
+- PRIMA CONTEMPORANEAMENTE
+fare loop sui blocchi di connessioni e
+flaggare conn_group_iconn0_mask_ e conn_group_idx0_mask
+con le connessioni iniziali di ogni gruppo E di ogni nodo source
+- fare la somma cumulativa in conn_group_iconn0_cumul
+e conn_group_idx0_cumul per trovare la posizione in
+conn_group_iconn0[i_group] e conn_group_idx0[i_node]
+NOTA ci sono solo i nodi che hanno almento una connessione
+
+- kernel sugli elementi di conn_group_idx0_mask
+se uguale 1 (conn_group_idx0_mask[i_block_conn]==1)
+i_node_reduced = conn_group_idx0_cumul[i_block_conn] + i_node_prev;
+i_group = conn_group_iconn0_cumul[i_block_conn] + i_conn_prev;
+conn_group_reduced_idx0[i_node_reduced] = i_group;
+
+- Usare kernel per trovare le differenze
+conn_group_reduced_num[i_node_reduced] = conn_group_idx0[i_node_reduced+1] - conn_group_idx0[i_node_reduced]
+trovare i_node dalla connessione e uguagliare
+conn_group_num[i_node] = conn_group_reduced_num[i_node_reduced]
+lasciando il valore 0 per i nodi che non hanno connessioni.
+- Calcolare ConnGroupIdx0[i_node] dal prefix sum di conn_group_num[i_node]
++ offset
+
+
+Controlla se la memoria ausiliaria già allocata per il block sort è sufficiente
+per l'ExclusiveSum e per il ReduceMax. In questo caso non è necessario deallocarla e può essere riutilizzata. Altrimenti deallocarla e allocare il massimo tra
+quella necessaria per l'ExclusiveSum e per il ReduceMax.

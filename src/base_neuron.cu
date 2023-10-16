@@ -210,7 +210,7 @@ int BaseNeuron::AllocParamArr()
 int BaseNeuron::FreeVarArr()
 {
   if (var_arr_ != NULL) {
-    gpuErrchk(cudaFree(var_arr_));
+    CUDAFREECTRL("var_arr_",var_arr_);
     var_arr_ = NULL;
   }
   return 0;
@@ -220,7 +220,7 @@ int BaseNeuron::FreeVarArr()
 int BaseNeuron::FreeParamArr()
 {
   if (param_arr_ != NULL) {
-    gpuErrchk(cudaFree(param_arr_));
+    CUDAFREECTRL("param_arr_",param_arr_);
     param_arr_ = NULL;
   }
   return 0;
@@ -267,7 +267,7 @@ int BaseNeuron::SetScalParam(int *i_neuron, int n_neuron,
     (param_pt, d_i_neuron, n_neuron, n_param_, val);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
   
   return 0;
 }
@@ -328,7 +328,7 @@ int BaseNeuron::SetPortParam(int *i_neuron, int n_neuron,
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
   }
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   return 0;
 }
@@ -412,7 +412,7 @@ int BaseNeuron::SetIntVar(int *i_neuron, int n_neuron,
     (var_pt, d_i_neuron, n_neuron, 1, val);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
   
   return 0;
 }
@@ -458,7 +458,7 @@ int BaseNeuron::SetScalVar(int *i_neuron, int n_neuron,
     (var_pt, d_i_neuron, n_neuron, n_var_, val);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
   
   return 0;
 }
@@ -519,7 +519,7 @@ int BaseNeuron::SetPortVar(int *i_neuron, int n_neuron,
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
   }
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   return 0;
 }
@@ -572,7 +572,7 @@ int BaseNeuron::SetScalParamDistr(int i_neuron, int n_neuron,
     (param_pt, n_neuron, n_param_, d_arr);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_arr));
+  CUDAFREECTRL("d_arr",d_arr);
   
   return 0;
 }
@@ -598,8 +598,8 @@ int BaseNeuron::SetScalParamDistr(int *i_neuron, int n_neuron,
     (param_pt, d_i_neuron, n_neuron, n_param_, d_arr);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
-  gpuErrchk(cudaFree(d_arr));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
+  CUDAFREECTRL("d_arr",d_arr);
   
   return 0;
 }
@@ -627,7 +627,7 @@ int BaseNeuron::SetScalVarDistr(int i_neuron, int n_neuron,
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
   //printf("okk3\n");
-  gpuErrchk(cudaFree(d_arr));
+  CUDAFREECTRL("d_arr",d_arr);
   //printf("okk4\n");
   
   return 0;
@@ -654,8 +654,8 @@ int BaseNeuron::SetScalVarDistr(int *i_neuron, int n_neuron,
     (var_pt, d_i_neuron, n_neuron, n_var_, d_arr);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
-  gpuErrchk(cudaFree(d_arr));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
+  CUDAFREECTRL("d_arr",d_arr);
   
   return 0;
 }
@@ -687,7 +687,7 @@ int BaseNeuron::SetPortParamDistr(int i_neuron, int n_neuron,
       (param_pt, n_neuron, n_param_, d_arr);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
-    gpuErrchk(cudaFree(d_arr));
+    CUDAFREECTRL("d_arr",d_arr);
   }
   return 0;
 }
@@ -720,9 +720,9 @@ int BaseNeuron::SetPortParamDistr(int *i_neuron, int n_neuron,
       (param_pt, d_i_neuron, n_neuron, n_param_, d_arr);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
-    gpuErrchk(cudaFree(d_arr));
+    CUDAFREECTRL("d_arr",d_arr);
   }
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   return 0;
 }
@@ -754,7 +754,7 @@ int BaseNeuron::SetPortVarDistr(int i_neuron, int n_neuron,
       (var_pt, n_neuron, n_var_, d_arr);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
-    gpuErrchk(cudaFree(d_arr));
+    CUDAFREECTRL("d_arr",d_arr);
   }
   return 0;
 }
@@ -783,9 +783,9 @@ int BaseNeuron::SetPortVarDistr(int *i_neuron, int n_neuron,
       (var_pt, d_i_neuron, n_neuron, n_var_, d_arr);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
-    gpuErrchk(cudaFree(d_arr));
+    CUDAFREECTRL("d_arr",d_arr);
   }
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   return 0;
 }
@@ -820,7 +820,7 @@ float *BaseNeuron::GetScalParam(int i_neuron, int n_neuron,
   
   gpuErrchk(cudaMemcpy(h_param_arr, d_param_arr, n_neuron*sizeof(float),
 		       cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_param_arr));
+  CUDAFREECTRL("d_param_arr",d_param_arr);
   
   return h_param_arr;
 }
@@ -849,11 +849,11 @@ float *BaseNeuron::GetScalParam(int *i_neuron, int n_neuron,
     (param_pt, d_param_arr, d_i_neuron, n_neuron, n_param_, 1);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   gpuErrchk(cudaMemcpy(h_param_arr, d_param_arr, n_neuron*sizeof(float),
 		       cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_param_arr));
+  CUDAFREECTRL("d_param_arr",d_param_arr);
 
   return h_param_arr;
 }
@@ -885,7 +885,7 @@ float *BaseNeuron::GetPortParam(int i_neuron, int n_neuron,
 
   gpuErrchk(cudaMemcpy(h_param_arr, d_param_arr, n_neuron*n_port_
 		       *sizeof(float), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_param_arr));
+  CUDAFREECTRL("d_param_arr",d_param_arr);
   
   return h_param_arr;
 }
@@ -917,11 +917,11 @@ float *BaseNeuron::GetPortParam(int *i_neuron, int n_neuron,
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
   }
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
   
   gpuErrchk(cudaMemcpy(h_param_arr, d_param_arr, n_neuron*n_port_
 		       *sizeof(float), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_param_arr));
+  CUDAFREECTRL("d_param_arr",d_param_arr);
   
   return h_param_arr;
 }
@@ -973,7 +973,7 @@ int *BaseNeuron::GetIntVar(int i_neuron, int n_neuron,
   
   gpuErrchk(cudaMemcpy(h_var_arr, d_var_arr, n_neuron*sizeof(int),
 		       cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_var_arr));
+  CUDAFREECTRL("d_var_arr",d_var_arr);
   
   return h_var_arr;
 }
@@ -1002,11 +1002,11 @@ int *BaseNeuron::GetIntVar(int *i_neuron, int n_neuron,
     (var_pt, d_var_arr, d_i_neuron, n_neuron, 1, 1);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   gpuErrchk(cudaMemcpy(h_var_arr, d_var_arr, n_neuron*sizeof(int),
 		       cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_var_arr));
+  CUDAFREECTRL("d_var_arr",d_var_arr);
   
   return h_var_arr;
 }
@@ -1035,7 +1035,7 @@ float *BaseNeuron::GetScalVar(int i_neuron, int n_neuron,
   
   gpuErrchk(cudaMemcpy(h_var_arr, d_var_arr, n_neuron*sizeof(float),
 		       cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_var_arr));
+  CUDAFREECTRL("d_var_arr",d_var_arr);
   
   return h_var_arr;
 }
@@ -1064,11 +1064,11 @@ float *BaseNeuron::GetScalVar(int *i_neuron, int n_neuron,
     (var_pt, d_var_arr, d_i_neuron, n_neuron, n_var_, 1);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
 
   gpuErrchk(cudaMemcpy(h_var_arr, d_var_arr, n_neuron*sizeof(float),
 		       cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_var_arr));
+  CUDAFREECTRL("d_var_arr",d_var_arr);
 
   return h_var_arr;
 }
@@ -1100,7 +1100,7 @@ float *BaseNeuron::GetPortVar(int i_neuron, int n_neuron,
 
   gpuErrchk(cudaMemcpy(h_var_arr, d_var_arr, n_neuron*n_port_
 		       *sizeof(float), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_var_arr));
+  CUDAFREECTRL("d_var_arr",d_var_arr);
   
   return h_var_arr;
 }
@@ -1131,11 +1131,11 @@ float *BaseNeuron::GetPortVar(int *i_neuron, int n_neuron,
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
   }
-  gpuErrchk(cudaFree(d_i_neuron));
+  CUDAFREECTRL("d_i_neuron",d_i_neuron);
   
   gpuErrchk(cudaMemcpy(h_var_arr, d_var_arr, n_neuron*n_port_
 		       *sizeof(float), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaFree(d_var_arr));
+  CUDAFREECTRL("d_var_arr",d_var_arr);
   
   return h_var_arr;
 }

@@ -486,11 +486,11 @@ int poiss_gen::buildDirectConnections()
   gpuErrchk(cudaMemset(d_mu_arr_, 0, n_node_*max_delay_*sizeof(float)));
   
   /*
-  gpuErrchk(cudaFree(d_key_array_data_pt));
-  gpuErrchk(cudaFree(d_subarray));
-  gpuErrchk(cudaFree(d_num));
-  gpuErrchk(cudaFree(d_sum));
-  gpuErrchk(cudaFree(d_thresh));
+  CUDAFREECTRL("d_key_array_data_pt",d_key_array_data_pt);
+  CUDAFREECTRL("d_subarray",d_subarray);
+  CUDAFREECTRL("d_num",d_num);
+  CUDAFREECTRL("d_sum",d_sum);
+  CUDAFREECTRL("d_thresh",d_thresh);
   */
   
   return 0;

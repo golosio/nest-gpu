@@ -18,7 +18,9 @@
  *
  */
 
-//#define OPTIMIZE_FOR_MEMORY
+
+
+
 
 #include <config.h>
 #include <iostream>
@@ -186,7 +188,7 @@ __device__ void PushSpike(int i_spike_buffer, float height)
 ////////////////////////////////////////////////////////////
 // Update spike buffer of a node
 ////////////////////////////////////////////////////////////
-__global__ void SpikeBufferUpdate()
+__global__ void SpikeBufferUpdateOld()
 {
   int i_spike_buffer = threadIdx.x + blockIdx.x * blockDim.x;
   if (i_spike_buffer>=NSpikeBuffer) return;
@@ -234,20 +236,23 @@ __global__ void SpikeBufferUpdate()
     uint conn_group_num = ConnGroupIdx0[i_spike_buffer+1] - conn_group_i0;
     int ig = conn_group_i0 + i_conn;
     
-
+    //if (i_conn<ConnGroupNum[i_spike_buffer] &&
     if (i_conn<conn_group_num) {
-#ifdef OPTIMIZE_FOR_MEMORY
       int64_t conn_group_i_conn0 = ConnGroupIConn0[ig];
       uint i_block = (uint)(conn_group_i_conn0 / ConnBlockSize);
       int64_t i_block_conn = conn_group_i_conn0 % ConnBlockSize;
       uint source_delay = SourceDelayArray[i_block][i_block_conn];
       int conn_group_delay = source_delay & PortMask;
+      //if (conn_group_delay != ConnGroupDelay[ig]) {
+      //printf("Error i_node: %d\tig: %d\tconn_group_delay: %d\t"
+      //       "ConnGroupDelay[ig]: %d\n", i_spike_buffer, ig, 
+      //       conn_group_delay, ConnGroupDelay[ig]);
+      //}
+	  
       // check if spike time matches connection group delay
+      //if (spike_time_idx+1 == ConnGroupDelay[ig]) {
       if (spike_time_idx+1 == conn_group_delay) {
-#else
-      if (spike_time_idx+1 == ConnGroupDelay[ig]) {
-	int64_t conn_group_i_conn0 = ConnGroupIConn0[ig];
-#endif
+	//int64_t conn_group_i_conn0 = ConnGroupIConn0[ig];
 	float height = SpikeBufferHeight[i_arr]; // spike multiplicity
 	// deliver spike
 	int64_t conn_group_n_conn = ConnGroupIConn0[ig+1] - conn_group_i_conn0;
@@ -263,6 +268,170 @@ __global__ void SpikeBufferUpdate()
     // and if its connection group index is over the last connection group
     // and if spike time is greater than the dendritic delay
     //if (is==Ns-1 && i_conn>=ConnGroupNum[i_spike_buffer]
+    if (is==Ns-1 && i_conn>=conn_group_num
+	&& spike_time_idx+1>=den_delay_idx) {
+      // in this case we don't need any more to keep track of the oldest spike
+      SpikeBufferSize[i_spike_buffer]--; // so remove it from buffer
+    }
+    else {
+      SpikeBufferTimeIdx[i_arr]++;
+      // increase time index
+    }
+  }
+
+  if (rev_spike) {
+    LastRevSpikeTimeIdx[i_spike_buffer] = NESTGPUTimeIdx+1;
+  }
+}
+////////////////////////////////////////////////////////////
+// Update spike buffer of a node
+////////////////////////////////////////////////////////////
+
+
+__global__ void SpikeBufferUpdateOld2()
+{
+  int i_spike_buffer = threadIdx.x + blockIdx.x * blockDim.x;
+  if (i_spike_buffer>=NSpikeBuffer) return;
+  
+  int i_group=NodeGroupMap[i_spike_buffer];
+  int den_delay_idx;
+  float *den_delay_arr = NodeGroupArray[i_group].den_delay_arr_;
+  // check if node has dendritic delay
+  if (den_delay_arr != NULL) {
+    int i_neuron = i_spike_buffer - NodeGroupArray[i_group].i_node_0_;
+    int n_param = NodeGroupArray[i_group].n_param_;
+    // dendritic delay index is stored in the parameter array
+    // den_delay_arr points to the dendritic delay if the first
+    // node of the group. The other are separate by steps = n_param
+    den_delay_idx = (int)round(den_delay_arr[i_neuron*n_param]
+			       /NESTGPUTimeResolution);
+    //printf("isb update %d\tden_delay_idx: %d\n", i_spike_buffer, den_delay_idx);
+  }
+  else {
+    den_delay_idx = 0;
+  }
+  // flag for sending spikes back through dendrites (e.g. for STDP)
+  bool rev_spike = false;
+  int is0 = SpikeBufferIdx0[i_spike_buffer]; // index of most recent spike
+  int Ns = SpikeBufferSize[i_spike_buffer]; // n. of spikes in buffer
+  for (int is=0; is<Ns; is++) {
+    int is1 = (is0  + is)%MaxSpikeBufferSize;
+    int i_arr = is1*NSpikeBuffer+i_spike_buffer; // spike index in array
+    int i_conn = SpikeBufferConnIdx[i_arr];
+    int spike_time_idx = SpikeBufferTimeIdx[i_arr];
+    //if (i_spike_buffer==1) {
+    //printf("is %d st %d dd %d\n", is, spike_time_idx, den_delay_idx);
+    //}
+    if (spike_time_idx+1 == den_delay_idx) {
+      rev_spike = true;
+    }
+    // connection index in array
+    //int i_conn_arr = i_conn*NSpikeBuffer+i_spike_buffer;
+    int ig = ConnGroupIdx0[i_spike_buffer] + i_conn;
+    // if spike time matches connection group delay deliver it
+    // to global spike array
+    if (i_conn<ConnGroupNum[i_spike_buffer] &&
+	spike_time_idx+1 == ConnGroupDelay[ig]) {
+      // spike time matches connection group delay
+      float height = SpikeBufferHeight[i_arr]; // spike multiplicity
+      // deliver spike
+      SendSpike(i_spike_buffer, i_conn, height, ConnGroupNConn[ig]);
+      // increase index of the next conn. group that will emit this spike
+      i_conn++;
+      SpikeBufferConnIdx[i_arr] = i_conn;
+    }
+    // Check if the oldest spike should be removed from the buffer:
+    // check if it is the oldest spike of the buffer
+    // and if its connection group index is over the last connection group
+    // and if spike time is greater than the dendritic delay
+    if (is==Ns-1 && i_conn>=ConnGroupNum[i_spike_buffer]
+	&& spike_time_idx+1>=den_delay_idx) {
+      // in this case we don't need any more to keep track of the oldest spike
+      SpikeBufferSize[i_spike_buffer]--; // so remove it from buffer
+    }
+    else {
+      SpikeBufferTimeIdx[i_arr]++;
+      // increase time index
+    }
+  }
+
+  if (rev_spike) {
+    LastRevSpikeTimeIdx[i_spike_buffer] = NESTGPUTimeIdx+1;
+  }
+}
+
+
+////////////////////////////////////////////////////////////
+// Update spike buffer of a node
+////////////////////////////////////////////////////////////
+__global__ void SpikeBufferUpdate()
+{
+  int i_spike_buffer = threadIdx.x + blockIdx.x * blockDim.x;
+  if (i_spike_buffer>=NSpikeBuffer) return;
+  
+  int i_group=NodeGroupMap[i_spike_buffer];
+  int den_delay_idx;
+  float *den_delay_arr = NodeGroupArray[i_group].den_delay_arr_;
+  // check if node has dendritic delay
+  if (den_delay_arr != NULL) {
+    int i_neuron = i_spike_buffer - NodeGroupArray[i_group].i_node_0_;
+    int n_param = NodeGroupArray[i_group].n_param_;
+    // dendritic delay index is stored in the parameter array
+    // den_delay_arr points to the dendritic delay if the first
+    // node of the group. The other are separate by steps = n_param
+    den_delay_idx = (int)round(den_delay_arr[i_neuron*n_param]
+			       /NESTGPUTimeResolution);
+    //printf("isb update %d\tden_delay_idx: %d\n", i_spike_buffer, den_delay_idx);
+  }
+  else {
+    den_delay_idx = 0;
+  }
+  // flag for sending spikes back through dendrites (e.g. for STDP)
+  bool rev_spike = false;
+  int is0 = SpikeBufferIdx0[i_spike_buffer]; // index of most recent spike
+  int Ns = SpikeBufferSize[i_spike_buffer]; // n. of spikes in buffer
+  for (int is=0; is<Ns; is++) {
+    int is1 = (is0  + is)%MaxSpikeBufferSize;
+    int i_arr = is1*NSpikeBuffer+i_spike_buffer; // spike index in array
+    int i_conn = SpikeBufferConnIdx[i_arr];
+    int spike_time_idx = SpikeBufferTimeIdx[i_arr];
+    //if (i_spike_buffer==1) {
+    //printf("is %d st %d dd %d\n", is, spike_time_idx, den_delay_idx);
+    //}
+    if (spike_time_idx+1 == den_delay_idx) {
+      rev_spike = true;
+    }
+    // connection index in array
+    //int i_conn_arr = i_conn*NSpikeBuffer+i_spike_buffer;
+    uint conn_group_i0 = ConnGroupIdx0[i_spike_buffer];
+    uint conn_group_num = ConnGroupIdx0[i_spike_buffer+1] - conn_group_i0;
+    int ig = conn_group_i0 + i_conn;
+    // if spike time matches connection group delay deliver it
+    // to global spike array
+    if (i_conn<conn_group_num) {
+      int64_t conn_group_i_conn0 = ConnGroupIConn0[ig];
+      uint i_block = (uint)(conn_group_i_conn0 / ConnBlockSize);
+      int64_t i_block_conn = conn_group_i_conn0 % ConnBlockSize;
+      uint source_delay = SourceDelayArray[i_block][i_block_conn];
+      int conn_group_delay = source_delay & PortMask;
+      if (spike_time_idx+1 == conn_group_delay) {
+	// spike time matches connection group delay
+	float height = SpikeBufferHeight[i_arr]; // spike multiplicity
+	// deliver spike
+	//int64_t conn_group_i_conn1 = (ig<(tot_conn_group_num-1)) ?
+	//  ConnGroupIConn0[ig+1] : NConn;
+	//int64_t conn_group_n_conn = conn_group_i_conn1 - conn_group_i_conn0;
+	int64_t conn_group_n_conn = ConnGroupIConn0[ig+1] - conn_group_i_conn0;
+	SendSpike(i_spike_buffer, i_conn, height, conn_group_n_conn);
+	// increase index of the next conn. group that will emit this spike
+	i_conn++;
+	SpikeBufferConnIdx[i_arr] = i_conn;
+      }
+    }
+    // Check if the oldest spike should be removed from the buffer:
+    // check if it is the oldest spike of the buffer
+    // and if its connection group index is over the last connection group
+    // and if spike time is greater than the dendritic delay
     if (is==Ns-1 && i_conn>=conn_group_num
 	&& spike_time_idx+1>=den_delay_idx) {
       // in this case we don't need any more to keep track of the oldest spike

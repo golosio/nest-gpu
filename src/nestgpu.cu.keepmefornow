@@ -52,8 +52,17 @@
 
 #include "remote_connect.h"
 
+// TEMPORARY
+__global__ void SpikeBufferUpdateOld();
+int NewConnectInitOld();
+int organizeConnectionsTmp(float time_resolution, uint n_node, int64_t n_conn,
+			    int64_t block_size,
+			    std::vector<uint*> &key_subarray,
+			   std::vector<connection_struct*> &conn_subarray);
 
-//#define VERBOSE_TIME
+
+
+				    //#define VERBOSE_TIME
 
 __constant__ double NESTGPUTime;
 __constant__ long long NESTGPUTimeIdx;
@@ -447,11 +456,18 @@ int NESTGPU::Calibrate()
   
   calibrate_flag_ = true;
   
-  organizeConnections(time_resolution_, GetNNode(),
-		      NConn, h_ConnBlockSize,
-		      KeySubarray, ConnectionSubarray);
+  organizeConnectionsTmp(time_resolution_, GetNNode(),
+  			 NConn, h_ConnBlockSize,
+  			 KeySubarray, ConnectionSubarray);
+  //organizeConnectionsOld(time_resolution_, GetNNode(),
+  //			 NConn, h_ConnBlockSize,
+  //			 KeySubarray, ConnectionSubarray);
+  //organizeConnections(time_resolution_, GetNNode(),
+  //		      NConn, h_ConnBlockSize,
+  //		      KeySubarray, ConnectionSubarray);
   
-  ConnectInit();
+  //NewConnectInit();
+  NewConnectInitOld();
 
   poiss_conn::OrganizeDirectConnections();
 
@@ -704,7 +720,7 @@ int NESTGPU::SimulationStep()
   double time_mark;
 
   time_mark = getRealTime();
-  SpikeBufferUpdate<<<(GetNNode()+1023)/1024, 1024>>>();
+  SpikeBufferUpdateOld<<<(GetNNode()+1023)/1024, 1024>>>();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
   SpikeBufferUpdate_time_ += (getRealTime() - time_mark);
@@ -1814,8 +1830,8 @@ int NESTGPU::PushSpikesToNodes(int n_spikes, int *node_id,
 						     d_spike_height);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  CUDAFREECTRL("d_node_id",d_node_id);
-  CUDAFREECTRL("d_spike_height",d_spike_height);
+  gpuErrchk(cudaFree(d_node_id));
+  gpuErrchk(cudaFree(d_spike_height));
   */
   
   return 0;
@@ -1838,7 +1854,7 @@ int NESTGPU::PushSpikesToNodes(int n_spikes, int *node_id)
   PushSpikeFromRemote<<<(n_spikes+1023)/1024, 1024>>>(n_spikes, d_node_id);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-  CUDAFREECTRL("d_node_id",d_node_id);
+  gpuErrchk(cudaFree(d_node_id));
   */
   
   return 0;
