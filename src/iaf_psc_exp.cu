@@ -1,20 +1,22 @@
 /*
- *  This file is part of NESTGPU.
+ *  iaf_psc_exp.cu
+ *
+ *  This file is part of NEST GPU.
  *
  *  Copyright (C) 2021 The NEST Initiative
  *
- *  NESTGPU is free software: you can redistribute it and/or modify
+ *  NEST GPU is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 2 of the License, or
  *  (at your option) any later version.
  *
- *  NESTGPU is distributed in the hope that it will be useful,
+ *  NEST GPU is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with NESTGPU.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with NEST GPU.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,10 +32,12 @@
 #include <iostream>
 #include "iaf_psc_exp.h"
 #include "spike_buffer.h"
+#include "propagator_stability.h"
 
 using namespace iaf_psc_exp_ns;
 
 extern __constant__ float NESTGPUTimeResolution;
+extern __device__ double propagator_32(double, double, double, double);
 
 #define I_syn_ex var[i_I_syn_ex]
 #define I_syn_in var[i_I_syn_in]
@@ -59,29 +63,6 @@ extern __constant__ float NESTGPUTimeResolution;
 #define P21ex param[i_P21ex]
 #define P21in param[i_P21in]
 #define P22 param[i_P22]
-
-__device__
-double propagator_32( double tau_syn, double tau, double C, double h )
-{
-  const double P32_linear = 1.0 / ( 2.0 * C * tau * tau ) * h * h
-    * ( tau_syn - tau ) * exp( -h / tau );
-  const double P32_singular = h / C * exp( -h / tau );
-  const double P32 =
-    -tau / ( C * ( 1.0 - tau / tau_syn ) ) * exp( -h / tau_syn )
-    * expm1( h * ( 1.0 / tau_syn - 1.0 / tau ) );
-
-  const double dev_P32 = fabs( P32 - P32_singular );
-
-  if ( tau == tau_syn || ( fabs( tau - tau_syn ) < 0.1 && dev_P32 > 2.0
-			   * fabs( P32_linear ) ) )
-  {
-    return P32_singular;
-  }
-  else
-  {
-    return P32;
-  }
-}
 
 
 __global__ void iaf_psc_exp_Calibrate(int n_node, float *param_arr,
@@ -218,4 +199,3 @@ int iaf_psc_exp::Calibrate(double, float time_resolution)
 
   return 0;
 }
-

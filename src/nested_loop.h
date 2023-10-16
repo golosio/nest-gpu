@@ -1,20 +1,22 @@
 /*
- *  This file is part of NESTGPU.
+ *  nested_loop.h
+ *
+ *  This file is part of NEST GPU.
  *
  *  Copyright (C) 2021 The NEST Initiative
  *
- *  NESTGPU is free software: you can redistribute it and/or modify
+ *  NEST GPU is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 2 of the License, or
  *  (at your option) any later version.
  *
- *  NESTGPU is distributed in the hope that it will be useful,
+ *  NEST GPU is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with NESTGPU.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with NEST GPU.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -273,7 +275,7 @@ int NestedLoop::BlockStepNestedLoop(int Nx, int *d_Ny)
 {
   BlockStepNestedLoopKernel<i_func><<<Nx, 1024>>>(Nx, d_Ny);
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
   
   return 0;
 }
@@ -301,7 +303,7 @@ int NestedLoop::SimpleNestedLoop(int Nx, int *d_Ny, int max_Ny)
 		 (max_Ny - 1)/threadsPerBlock.y + 1);
   SimpleNestedLoopKernel<i_func> <<<numBlocks,threadsPerBlock>>>(Nx, d_Ny);
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
 
   return 0;
 }
@@ -320,7 +322,7 @@ int NestedLoop::ParallelInnerNestedLoop(int Nx, int *d_Ny)
     // gpuErrchk(cudaDeviceSynchronize()); // uncomment only for debugging
   }
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
 
   return 0;
 }
@@ -331,7 +333,7 @@ int NestedLoop::ParallelOuterNestedLoop(int Nx, int *d_Ny)
 {
   ParallelOuterNestedLoopKernel<i_func><<<(Nx+1023)/1024, 1024>>>(Nx, d_Ny);
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
   
   return 0;
 }
@@ -363,7 +365,7 @@ int NestedLoop::Frame1DNestedLoop(int Nx, int *d_Ny)
       (ix0, dim_x, dim_y, d_sorted_idx_, d_sorted_Ny_);
   }
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
   
   return 0;
 }
@@ -401,7 +403,7 @@ int NestedLoop::Frame2DNestedLoop(int Nx, int *d_Ny)
 
   }
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
 
   return 0;
 }
@@ -477,7 +479,7 @@ int NestedLoop::Smart1DNestedLoop(int Nx, int *d_Ny)
     //CudaCheckError(); // uncomment only for debugging
   }
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
 
   return 0;
 }
@@ -557,7 +559,7 @@ int NestedLoop::Smart2DNestedLoop(int Nx, int *d_Ny)
     //CudaCheckError(); // uncomment only for debugging      
   }
   gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  //gpuErrchk(cudaDeviceSynchronize());
   
   return 0;
 }
@@ -615,7 +617,7 @@ int NestedLoop::CumulSumNestedLoop(int Nx, int *d_Ny)
     CumulSumNestedLoopKernel<i_func><<<numBlocks, 1024>>>
     (Nx, d_Ny_cumul_sum_, Ny_sum);
     gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //gpuErrchk(cudaDeviceSynchronize());
 
     //TMP
     //printf("cst: %lf\n", getRealTime()-time_mark);
