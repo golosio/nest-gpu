@@ -2558,9 +2558,13 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::organizeConnections( inode_t n_node
     printf( "storage bytes: %ld\n", sort_storage_bytes );
     CUDAMALLOCCTRL( "&d_sort_storage", &d_sort_storage, sort_storage_bytes );
 
-    printf( "Sorting...\n" );
+    printf( "Sorting this_host_ %d ...\n", this_host_ );
+    fflush(stdout);
     copass_sort::sort< ConnKeyT, ConnStructT >(
       conn_key_vect_.data(), conn_struct_vect_.data(), n_conn_, conn_block_size_, d_sort_storage, sort_storage_bytes );
+    printf( "ok0 this_host_ %d done sorting\n", this_host_ );
+    fflush(stdout);
+    
     CUDAFREECTRL( "d_sort_storage", d_sort_storage );
 
     // It is important to separate number of allocated blocks
