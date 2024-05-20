@@ -229,6 +229,7 @@ template < class KeyT, class ValueT >
 void
 array_GPUSort( contiguous_key_value< KeyT, ValueT >& arr_in, void* d_storage, int64_t& ext_st_bytes )
 {
+  CUDASYNC;
   ext_st_bytes = 0;
   int num_elems = arr_in.size;
   contiguous_key_value< KeyT, ValueT > arr_out;
@@ -239,7 +240,8 @@ array_GPUSort( contiguous_key_value< KeyT, ValueT >& arr_in, void* d_storage, in
   // the following is just for memory alignement
   void* dummy_pt;
   cudaReusableAlloc( d_storage, ext_st_bytes, &dummy_pt, 1, 256 );
-
+  CUDASYNC;
+  
   size_t sort_storage_bytes = 0;
   //<BEGIN-CLANG-TIDY-SKIP>//
   cub::DeviceRadixSort::SortPairs( NULL,
@@ -250,7 +252,7 @@ array_GPUSort( contiguous_key_value< KeyT, ValueT >& arr_in, void* d_storage, in
     arr_out.value_pt,
     num_elems );
   //<END-CLANG-TIDY-SKIP>//
-
+  CUDASYNC;
   if ( d_storage != NULL )
   {
     void* d_sort_storage = ( void* ) ( ( char* ) d_storage + ext_st_bytes );
@@ -263,12 +265,15 @@ array_GPUSort( contiguous_key_value< KeyT, ValueT >& arr_in, void* d_storage, in
       arr_out.value_pt,
       num_elems );
     //<END-CLANG-TIDY-SKIP>//
-
+    CUDASYNC;
     gpuErrchk( cudaMemcpyAsync(
       arr_in.key_pt + arr_in.offset, arr_out.key_pt, num_elems * sizeof( KeyT ), cudaMemcpyDeviceToDevice ) );
+    CUDASYNC;
     gpuErrchk( cudaMemcpy(
       arr_in.value_pt + arr_in.offset, arr_out.value_pt, num_elems * sizeof( ValueT ), cudaMemcpyDeviceToDevice ) );
+    CUDASYNC;
   }
+  CUDASYNC;
 
   ext_st_bytes += sort_storage_bytes;
 }
