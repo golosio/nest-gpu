@@ -638,7 +638,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
 
   if (tid == 0) {
     printf("bid:%d tid:0 step:%ld size:%ld\n", blockIdx.x, step, size);
-    printf("arr[n-1]: %d arr[n-2] %d val %d\n", getKey(array, size-1),
+    printf("arr[n-1]: %ld arr[n-2] %ld val %d\n", getKey(array, size-1),
 	   getKey(array, size-2), val);
   }
   __syncthreads();
@@ -663,7 +663,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
       if ( ( right - pos ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
-        printf("bid:%d tid:%ld sa:%ld pos:%ld\n", blockIdx.x, tid,
+        printf("bid:%d tid:%d sa:%d pos:%ld\n", blockIdx.x, tid,
 	       shared_array[tid], pos);
       }
     }
