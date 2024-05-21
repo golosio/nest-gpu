@@ -603,6 +603,9 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  gpuErrchk( cudaMemcpy( &h_mu_u_170, &d_mu_u[170], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
 	  gpuErrchk( cudaMemcpy( &h_mu_d_170, &d_mu_d[170], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
 	  printf("okk5 h_mu_d_170 %ld h_mu_u_170 %ld\n", h_mu_d_170, h_mu_u_170); 
+	  my_search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
+	  gpuErrchk( cudaMemcpy( &h_mu_u_170, &d_mu_u[170], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  printf("okk6 h_mu_u_170 %ld\n", h_mu_u_170); 
 	  
 	  exit(0);
 	}

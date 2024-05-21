@@ -596,6 +596,122 @@ __global__ void copass_last_step_kernel( position_t* part_size,
 //////////////////////////////////////////////////
 __global__ void case2_inc_partitions_kernel( position_t* part_size, int* sorted_extra_elem_idx, position_t tot_diff );
 
+
+
+
+
+// find the number of elements <= val
+// in a sorted array array[i+1]>=array[i]
+template < class KeyT, class ArrayT, uint bsize >
+__device__ void
+my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
+{
+  __shared__ KeyT shared_array[ bsize + 1 ];
+  __shared__ position_t left;
+  __shared__ position_t right;
+
+  int tid = threadIdx.x;
+  if ( size == 0 || getKey( array, 0 ) > val )
+  {
+    if ( tid == 0 )
+    {
+      *num_up = 0;
+    }
+    return;
+  }
+  else if ( getKey( array, size - 1 ) <= val )
+  {
+    if ( tid == 0 )
+    {
+      *num_up = size;
+    }
+    return;
+  }
+
+  if ( tid == 0 )
+  {
+    left = 0;
+    right = size - 1;
+  }
+
+  position_t step = size - 1;
+
+  // if (tid == 0) {
+  //   printf("bid:%d tid:0 step:%ld size:%ld\n", blockIdx.x, step, size);
+  //   printf("arr[n-1]: %d arr[n-2] %d val %d\n", getKey(array, size-1),
+  //       getKey(array, size-2), val);
+  // }
+  __syncthreads();
+  while ( step > 1 && ( right - left ) > 1 )
+  {
+    position_t pos;
+    position_t new_step = ( step + blockDim.x - 1 ) / blockDim.x;
+    int n_steps = ( int ) ( ( step + new_step - 1 ) / new_step );
+    step = new_step;
+    if ( tid == 0 )
+    {
+      pos = left;
+      shared_array[ 0 ] = getKey( array, left );
+      shared_array[ n_steps ] = getKey( array, right );
+      // printf("bid:%d tid:0 n_steps:%d sa:%d right:%ld arr:%d step: %ld\n",
+      //      blockIdx.x, n_steps, (int)shared_array[n_steps], right,
+      //      (int)getKey(array, right), step);
+    }
+    else if ( tid < n_steps )
+    {
+      pos = left + step * tid;
+      if ( ( right - pos ) >= 1 )
+      {
+        shared_array[ tid ] = getKey( array, pos );
+        // printf("bid:%d tid:%ld sa:%ld pos:%ld arr:%ld\n", blockIdx.x, tid,
+        //            shared_array[tid], pos, array[pos]);
+      }
+    }
+    __syncthreads();
+    if ( ( tid < n_steps ) && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] <= val )
+      && ( shared_array[ tid + 1 ] > val ) )
+    {
+      left = pos;
+      right = min( pos + step, right );
+      // printf("bid:%d good tid:%d sa0:%d sa1:%d l:%ld r:%ld\n", blockIdx.x,
+      //      tid, (int)shared_array[tid], (int)shared_array[tid+1],
+      //      left, right);
+    }
+    __syncthreads();
+  }
+
+  if ( threadIdx.x == 0 )
+  {
+    *num_up = right;
+    // printf("Kernel block: %ld\tnum_up: %ld\n", blockIdx.x, right);
+    // printf("bid: %ld\tleft: %ld\tright: %ld\n", blockIdx.x, left, right);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // find the number of elements <= val
 // in a sorted array array[i+1]>=array[i]
 template < class KeyT, class ArrayT, uint bsize >
@@ -695,6 +811,20 @@ search_multi_up_kernel( ArrayT* subarray, KeyT* val_pt, position_t* num_up, posi
   {
     atomicAdd( ( uposition_t* ) sum_num_up, num_up[ bid ] );
     // printf("bid: %ld\tm_d: %ld\n", blockIdx.x, num_up[bid]);
+  }
+}
+
+template < class KeyT, class ArrayT, uint bsize >
+__global__ void
+my_search_multi_up_kernel( ArrayT* subarray, KeyT* val_pt, position_t* num_up, position_t* sum_num_up )
+{
+  int bid = blockIdx.x;
+  KeyT val = *val_pt;
+  my_search_block_up< KeyT, ArrayT, bsize >( subarray[ bid ], subarray[ bid ].size, val, &num_up[ bid ] );
+  if ( threadIdx.x == 0 )
+  {
+    atomicAdd( ( uposition_t* ) sum_num_up, num_up[ bid ] );
+    printf("bid: %ld\tm_d: %ld\n", blockIdx.x, num_up[bid]);
   }
 }
 
@@ -956,6 +1086,17 @@ search_multi_up( ArrayT* d_subarray, uint k, KeyT* d_val_pt, position_t* d_num_u
 {
   gpuErrchk( cudaMemsetAsync( d_sum_num_up, 0, sizeof( position_t ) ) );
   search_multi_up_kernel< KeyT, ArrayT, bsize > <<< k, bsize>>>( d_subarray, d_val_pt, d_num_up, d_sum_num_up );
+  DBGCUDASYNC
+
+  return 0;
+}
+
+template < class KeyT, class ArrayT, uint bsize >
+int
+my_search_multi_up( ArrayT* d_subarray, uint k, KeyT* d_val_pt, position_t* d_num_up, position_t* d_sum_num_up )
+{
+  gpuErrchk( cudaMemsetAsync( d_sum_num_up, 0, sizeof( position_t ) ) );
+  my_search_multi_up_kernel< KeyT, ArrayT, bsize > <<< k, bsize>>>( d_subarray, d_val_pt, d_num_up, d_sum_num_up );
   DBGCUDASYNC
 
   return 0;
