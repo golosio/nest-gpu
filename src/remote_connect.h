@@ -1494,23 +1494,6 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::CreateHostGroup(int *host_arr, int 
     std::vector< std::vector< int > > hg_lni(hg.size(), std::vector< int >());
     host_group_local_node_index_.push_back(hg_lni);
   }
-#ifdef HAVE_MPI
-  // Get the group from the world communicator
-  MPI_Group world_group;
-  MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-  // create new MPI group from host group hg
-  MPI_Group newgroup;
-  MPI_Group_incl(world_group, hg.size(), &hg[0], &newgroup);
-  // create new MPI communicator
-  MPI_Comm newcomm;
-  MPI_Comm_create(MPI_COMM_WORLD, newgroup, &newcomm);
-  if (this_host_is_in_group) {
-    // insert them in MPI groups and comm vectors
-    mpi_group_vect_.push_back(newgroup);
-    mpi_comm_vect_.push_back(newcomm);
-#endif
-    
-  }
   else {
     // if this host is not in the group, set the entry of host_group_local_id_ to -1 
     host_group_local_id_.push_back(-1);

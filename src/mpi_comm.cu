@@ -233,6 +233,8 @@ int
 NESTGPU::ConnectMpiInit( int argc, char* argv[] )
 {
 #ifdef HAVE_MPI
+  std::cout << "Initializing MPI .... ????\n";
+  return 0;
   CheckUncalibrated( "MPI connections cannot be initialized after calibration" );
   int initialized;
   MPI_Initialized( &initialized );

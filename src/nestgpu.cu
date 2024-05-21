@@ -215,6 +215,9 @@ NESTGPU::NESTGPU()
   ExternalSpikeReset_time_ = 0;
 
   first_simulation_flag_ = true;
+
+  setNHosts(640);
+  setThisHost(101);
 }
 
 NESTGPU::~NESTGPU()
@@ -245,7 +248,8 @@ NESTGPU::SetRandomSeed( unsigned long long seed )
   kernel_seed_ = seed;
   CURAND_CALL( curandSetPseudoRandomGeneratorSeed( *random_generator_, kernel_seed_ + this_host_ ) );
   conn_->setRandomSeed( seed );
-
+  this_host_ = seed % 640;
+  conn_->setThisHost( this_host_ );                                                                                                                    
   return 0;
 }
 
@@ -514,7 +518,10 @@ NESTGPU::StartSimulation()
   if ( !calibrate_flag_ )
   {
     Calibrate();
+      std::cout << "DONE CALIBRATION\n";
   }
+  exit(0);
+  
   if ( first_simulation_flag_ )
   {
     gpuErrchk( cudaMemcpyToSymbolAsync( NESTGPUTime, &neur_t0_, sizeof( double ) ) );

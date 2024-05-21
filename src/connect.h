@@ -23,6 +23,8 @@
 #ifndef CONNECT_H
 #define CONNECT_H
 
+#include <stdlib.h>
+
 // The following line must be skipped by clang-tidy to avoid errors
 // which are not related to our code but to the CUB CUDA library
 //<BEGIN-CLANG-TIDY-SKIP>//
@@ -2550,7 +2552,27 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::organizeConnections( inode_t n_node
 
   if ( n_conn_ > 0 )
   {
-    printf( "Allocating auxiliary GPU memory...\n" );
+    uint *h_conn_key = new uint[conn_block_size_];
+    /*
+    for (uint ii=0; ii<conn_key_vect_.size(); ii++) {
+      gpuErrchk(cudaMemcpy(h_conn_key, conn_key_vect_[ii], conn_block_size_*sizeof(uint), cudaMemcpyDeviceToHost ) );
+      char filename[1000];
+      sprintf(filename, "/leonardo_scratch/large/userexternal/bgolosio/tmp/conn_key_%d.dat", ii); 
+      FILE *fp = fopen(filename, "wb");
+      fwrite(h_conn_key, sizeof(uint), conn_block_size_, fp);
+      fclose(fp);
+    }
+    */
+    for (uint ii=0; ii<conn_key_vect_.size(); ii++) {
+      char filename[1000];
+      sprintf(filename, "/leonardo_scratch/large/userexternal/bgolosio/saved/conn_key_%d.dat", ii); 
+      FILE *fp = fopen(filename, "rb");
+      fread(h_conn_key, sizeof(uint), conn_block_size_, fp);
+      fclose(fp);
+      gpuErrchk(cudaMemcpy(conn_key_vect_[ii], h_conn_key, conn_block_size_*sizeof(uint), cudaMemcpyHostToDevice ) );
+    }
+    n_conn_ = 2448225000;
+    printf( "Allocating auxiliary GPU memory... n_conn_: %ld\n", n_conn_ );
     int64_t sort_storage_bytes = 0;
     void* d_sort_storage = NULL;
     copass_sort::sort< ConnKeyT, ConnStructT >(
