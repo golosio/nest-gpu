@@ -524,9 +524,9 @@ copass_sort::sort_template( KeyArrayT key_array,
 	int h_arg_max;
 	gpuErrchk( cudaMemcpy( &h_arg_max, d_arg_max, sizeof( int ), cudaMemcpyDeviceToHost ) );
 	printf( "okST9b i_sub %d tmp_idx %d h_arg_max %d h_max_diff %ld\n", i_sub, tmp_idx, h_arg_max, h_max_diff);
-	if (tmp_idx==28) { // 200 o 199
-	  //int iibb = 170;
-	  int iibb = 3;
+	if (tmp_idx==200) { // 200 o 199 o 28
+	  int iibb = 170;
+	  //int iibb = 3;
 	  position_t h_m_d[k];
 	  position_t h_m_u[k];
 	  gpuErrchk( cudaMemcpy( h_m_d, d_m_d, k*sizeof( position_t ), cudaMemcpyDeviceToHost ) );
