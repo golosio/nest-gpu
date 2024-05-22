@@ -524,14 +524,16 @@ copass_sort::sort_template( KeyArrayT key_array,
 	int h_arg_max;
 	gpuErrchk( cudaMemcpy( &h_arg_max, d_arg_max, sizeof( int ), cudaMemcpyDeviceToHost ) );
 	printf( "okST9b i_sub %d tmp_idx %d h_arg_max %d h_max_diff %ld\n", i_sub, tmp_idx, h_arg_max, h_max_diff);
-	if (tmp_idx==200) { // 200 o 199
+	if (tmp_idx==28) { // 200 o 199
+	  //int iibb = 170;
+	  int iibb = 3;
 	  position_t h_m_d[k];
 	  position_t h_m_u[k];
 	  gpuErrchk( cudaMemcpy( h_m_d, d_m_d, k*sizeof( position_t ), cudaMemcpyDeviceToHost ) );
 	  gpuErrchk( cudaMemcpy( h_m_u, d_m_u, k*sizeof( position_t ), cudaMemcpyDeviceToHost ) );
-	  position_t jd = h_m_d[170];
-	  position_t ju = h_m_u[170];
-	  printf("okk0 tmp_idx %d h_m_d[170] %ld h_m_u[170] %ld\n", tmp_idx, jd, ju);
+	  position_t jd = h_m_d[iibb];
+	  position_t ju = h_m_u[iibb];
+	  printf("okk0 tmp_idx %d h_m_d[iibb] %ld h_m_u[iibb] %ld\n", tmp_idx, jd, ju);
 	  printf("okk0b k %d\n", k); 
 	  fflush(stdout);
 	  //position_t sz0 = h_subarray[0].size;
@@ -540,10 +542,10 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  //position_t sz169 = h_subarray[169].size;
 	  //printf("okk0e h_subarray[169].size %ld\n", sz169);
 	  //fflush(stdout);
-	  position_t sz = h_subarray[170].size;
-	  printf("okk0f h_subarray[170].size %ld\n", sz);
+	  position_t sz = h_subarray[iibb].size;
+	  printf("okk0f h_subarray[iibb].size %ld\n", sz);
 	  fflush(stdout);
-	  regular_block_key_value<KeyT, ArrayT> *hsa = (regular_block_key_value<KeyT, ArrayT> *) &h_subarray[170]; 
+	  regular_block_key_value<KeyT, ArrayT> *hsa = (regular_block_key_value<KeyT, ArrayT> *) &h_subarray[iibb]; 
 	  printf("okk0g hsa->size %ld\n", hsa->size);
 	  fflush(stdout);
 	  printf("okk0h hsa->offset %ld\n", hsa->offset);
@@ -558,15 +560,15 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  printf("okk0i posd %ld posu %ld blkd %d blku %d reld %ld relu %ld\n", posd, posu, blkd, blku, reld, relu);
 	  fflush(stdout);
 
-	  //printf("okk1 h_subarray[170].size %ld\n", sz);
+	  //printf("okk1 h_subarray[iibb].size %ld\n", sz);
 	  //ArrayT my_h_subarray[k];
 	  //gpuErrchk( cudaMemcpy( my_h_subarray, d_subarray, k * sizeof( ArrayT ), cudaMemcpyDeviceToHost ) );
 	  
-	  //KeyT *d_keys = h_subarray[170].key_pt + h_subarray[170].offset;
+	  //KeyT *d_keys = h_subarray[iibb].key_pt + h_subarray[iibb].offset;
 	  //template < class KeyT, class ValueT > KeyT* getKeyPt( contiguous_key_value< KeyT, ValueT >& arr )
 	  //{ return arr.key_pt + arr.offset; }
 
-	  //KeyT *d_keys = getKeyPt( h_subarray[170] );
+	  //KeyT *d_keys = getKeyPt( h_subarray[iibb] );
 	  
 	  uint h_keys[block_size];
 	  printf("okk0j\n");
@@ -581,13 +583,13 @@ copass_sort::sort_template( KeyArrayT key_array,
 
 	  //for (int jj=jd; jj<=ju; jj++) {
 	  for (position_t jj=reld; jj<reld + posu - posd; jj++) {
-	    printf("okk2 jj %ld h_subarray[170][jj] %d\n", jj, h_keys[jj]);
+	    printf("okk2 jj %ld h_subarray[iibb][jj] %d\n", jj, h_keys[jj]);
 	    fflush(stdout);
 	  }
 	  gpuErrchk( cudaMemcpy( h_keys, h_key_pt1[blkd+1], 10 * sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
 	  //for (int jj=jd; jj<=ju; jj++) {
 	  for (position_t jj=0; jj<10; jj++) {
-	    printf("okk3 jj %ld h_subarray[171][jj] %d\n", jj, h_keys[jj]);
+	    printf("okk3 jj %ld h_subarray[iibb+1][jj] %d\n", jj, h_keys[jj]);
 	  }
 
 	  eval_t_tilde_kernel< KeyT, ArrayT > <<< 1, 1 >>>( d_subarray, d_m_u, d_m_d, d_arg_max, d_t_tilde );
@@ -598,14 +600,14 @@ copass_sort::sort_template( KeyArrayT key_array,
 
 	  search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
 	  search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
-	  position_t h_mu_d_170;
-	  position_t h_mu_u_170;
-	  gpuErrchk( cudaMemcpy( &h_mu_u_170, &d_mu_u[170], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
-	  gpuErrchk( cudaMemcpy( &h_mu_d_170, &d_mu_d[170], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
-	  printf("okk5 h_mu_d_170 %ld h_mu_u_170 %ld\n", h_mu_d_170, h_mu_u_170); 
+	  position_t h_mu_d_iibb;
+	  position_t h_mu_u_iibb;
+	  gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  gpuErrchk( cudaMemcpy( &h_mu_d_iibb, &d_mu_d[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  printf("okk5 h_mu_d_iibb %ld h_mu_u_iibb %ld\n", h_mu_d_iibb, h_mu_u_iibb); 
 	  my_search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, d_t_tilde, d_mu_u );
-	  gpuErrchk( cudaMemcpy( &h_mu_u_170, &d_mu_u[170], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
-	  printf("okk6 h_mu_u_170 %ld\n", h_mu_u_170); 
+	  gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  printf("okk6 h_mu_u_iibb %ld\n", h_mu_u_iibb); 
 	  
 	  exit(0);
 	}
