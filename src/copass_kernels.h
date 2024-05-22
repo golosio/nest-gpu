@@ -660,6 +660,9 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
     else if ( tid < n_steps )
     {
       pos = left + step * tid;
+      if ((pos >= right) && (pos - step) < (right-1)) {
+	pos = right - 1;
+      }
       if ( ( right - pos ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
