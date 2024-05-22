@@ -653,15 +653,23 @@ copass_sort::sort_template( KeyArrayT key_array,
         search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
         search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
         gpuErrchk( cudaMemcpyAsync( &h_sum_mu_u, d_sum_mu_u, sizeof( position_t ), cudaMemcpyDeviceToHost ) );
-        gpuErrchk( cudaMemcpy( &h_sum_mu_d, d_sum_mu_d, sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+        gpuErrchk( cudaMemcpy( &h_sum_mu_d, d_sum_mu_d, sizeof( position_t ), cudaMemcpyDeviceToHost ) );	
 	printf( "okST12 this_host %d i_sub %d tmp_idx %d\n", this_host, i_sub, tmp_idx);
 	fflush(stdout);
+
+	position_t h_mu_d_am;
+	position_t h_mu_u_am;
+	gpuErrchk( cudaMemcpy( &h_mu_u_am, &d_mu_u[h_arg_max], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	gpuErrchk( cudaMemcpy( &h_mu_d_am, &d_mu_d[h_arg_max], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	
 	printf( "okST12b h_arg_max_old %d h_sum_mu_d[h_arg_max_old] %ld h_sum_mu_u[h_arg_max_old] %ld\n",
-		h_arg_max, h_sum_mu_d[h_arg_max], h_sum_mu_u[h_arg_max]);
-	fflush(stdout);
+		h_arg_max, h_mu_d_am, h_mu_u_am);
+	fflush(stdout);	
 	gpuErrchk( cudaMemcpy( &h_arg_max, d_arg_max, sizeof( int ), cudaMemcpyDeviceToHost ) );
+	gpuErrchk( cudaMemcpy( &h_mu_u_am, &d_mu_u[h_arg_max], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	gpuErrchk( cudaMemcpy( &h_mu_d_am, &d_mu_d[h_arg_max], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
 	printf( "okST12c h_arg_max %d h_sum_mu_d[h_arg_max] %ld h_sum_mu_u[h_arg_max] %ld\n",
-		h_arg_max, h_sum_mu_d[h_arg_max], h_sum_mu_u[h_arg_max]);
+		h_arg_max, h_mu_d_am, h_mu_u_am);
 	fflush(stdout);
 
         if ( block_size < h_sum_mu_d )
