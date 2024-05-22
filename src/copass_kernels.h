@@ -659,7 +659,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
 	     blockIdx.x, n_steps, (int)shared_array[n_steps], right,
 	     (int)getKey(array, right), step);
     }
-    else if ( tid < n_steps )
+    else if ( tid <= n_steps )
     {
       pos = left + step * tid;
       pos1 = pos + step;
@@ -667,7 +667,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
       //pos = right - 1;
       //}
       //if ( ( right - pos ) >= 1 )
-      if ( pos < size )
+      if ( pos < size && ( right - pos1 ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
         printf("bid:%d tid:%d sa:%d pos:%ld\n", blockIdx.x, tid,
