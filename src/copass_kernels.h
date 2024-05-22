@@ -765,22 +765,25 @@ search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
   while ( step > 1 && ( right - left ) > 1 )
   {
     position_t pos;
+    position_t pos1;
     position_t new_step = ( step + blockDim.x - 1 ) / blockDim.x;
     int n_steps = ( int ) ( ( step + new_step - 1 ) / new_step );
     step = new_step;
     if ( tid == 0 )
     {
       pos = left;
+      pos1 = pos + step;
       shared_array[ 0 ] = getKey( array, left );
-      shared_array[ n_steps ] = getKey( array, right );
+      //shared_array[ n_steps ] = getKey( array, right );
       // printf("bid:%d tid:0 n_steps:%d sa:%d right:%ld arr:%d step: %ld\n",
       //      blockIdx.x, n_steps, (int)shared_array[n_steps], right,
       //      (int)getKey(array, right), step);
     }
-    else if ( tid < n_steps )
+    else if ( tid <= n_steps )
     {
       pos = left + step * tid;
-      if ( ( right - pos ) >= 1 )
+      pos1 = pos + step;
+      if ( pos < size && ( right - pos1 ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
         // printf("bid:%d tid:%ld sa:%ld pos:%ld arr:%ld\n", blockIdx.x, tid,
@@ -789,10 +792,10 @@ search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
     }
     __syncthreads();
     if ( ( tid < n_steps ) && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] <= val )
-      && ( shared_array[ tid + 1 ] > val ) )
+      && ( (tid + 1)>=n_steps || pos1>=size || shared_array[ tid + 1 ] > val ) )
     {
       left = pos;
-      right = min( pos + step, right );
+      right = min( pos1, right );
       // printf("bid:%d good tid:%d sa0:%d sa1:%d l:%ld r:%ld\n", blockIdx.x,
       //      tid, (int)shared_array[tid], (int)shared_array[tid+1],
       //      left, right);
