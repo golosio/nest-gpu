@@ -590,11 +590,11 @@ copass_sort::sort_template( KeyArrayT key_array,
 	    printf("okk2 jj %ld h_subarray[iibb][jj] %d\n", jj, h_keys[jj]);
 	    fflush(stdout);
 	  }
-	  gpuErrchk( cudaMemcpy( h_keys, h_key_pt1[blkd+1], 10 * sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
+	  //gpuErrchk( cudaMemcpy( h_keys, h_key_pt1[blkd+1], 10 * sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
 	  //for (int jj=jd; jj<=ju; jj++) {
-	  for (position_t jj=0; jj<10; jj++) {
-	    printf("okk3 jj %ld h_subarray[iibb+1][jj] %d\n", jj, h_keys[jj]);
-	  }
+	  //for (position_t jj=0; jj<10; jj++) {
+	  //  printf("okk3 jj %ld h_subarray[iibb+1][jj] %d\n", jj, h_keys[jj]);
+	  //}
 
 	  eval_t_tilde_kernel< KeyT, ArrayT > <<< 1, 1 >>>( d_subarray, d_m_u, d_m_d, d_arg_max, d_t_tilde );
 	  CUDASYNC;
