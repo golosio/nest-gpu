@@ -652,6 +652,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
     if ( tid == 0 )
     {
       pos = left;
+      pos1 = pos + step;
       shared_array[ 0 ] = getKey( array, left );
       //shared_array[ n_steps ] = getKey( array, right );
       printf("bid:%d tid:0 n_steps:%d sa:%d right:%ld arr:%d step: %ld\n",
