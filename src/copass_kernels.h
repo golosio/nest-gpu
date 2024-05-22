@@ -665,7 +665,8 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
       //if ((pos >= right) && (pos - step) < (right-1)) {
       //pos = right - 1;
       //}
-      if ( ( right - pos ) >= 1 )
+      //if ( ( right - pos ) >= 1 )
+      if ( pos < size )
       {
         shared_array[ tid ] = getKey( array, pos );
         printf("bid:%d tid:%d sa:%d pos:%ld\n", blockIdx.x, tid,
@@ -674,7 +675,8 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
     }
     __syncthreads();
     if ( ( tid < n_steps ) && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] <= val )
-	 && ( (tid + 1)>=n_steps || (right - pos1)<1 || shared_array[ tid + 1 ] > val ) )
+	 && ( (tid + 1)>=n_steps || pos1>=size || shared_array[ tid + 1 ] > val ) )
+      //&& ( (tid + 1)>=n_steps || (right - pos1)<1 || shared_array[ tid + 1 ] > val ) )
     {
       left = pos;
       right = min( pos1, right );
