@@ -645,6 +645,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
   while ( step > 1 && ( right - left ) > 1 )
   {
     position_t pos;
+    position_t pos1;
     position_t new_step = ( step + blockDim.x - 1 ) / blockDim.x;
     int n_steps = ( int ) ( ( step + new_step - 1 ) / new_step );
     step = new_step;
@@ -660,7 +661,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
     else if ( tid < n_steps )
     {
       pos = left + step * tid;
-      position_t pos1 = pos + step;
+      pos1 = pos + step;
       //if ((pos >= right) && (pos - step) < (right-1)) {
       //pos = right - 1;
       //}
