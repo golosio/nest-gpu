@@ -656,6 +656,13 @@ copass_sort::sort_template( KeyArrayT key_array,
         gpuErrchk( cudaMemcpy( &h_sum_mu_d, d_sum_mu_d, sizeof( position_t ), cudaMemcpyDeviceToHost ) );
 	printf( "okST12 this_host %d i_sub %d tmp_idx %d\n", this_host, i_sub, tmp_idx);
 	fflush(stdout);
+	printf( "okST12b h_arg_max_old %d h_sum_mu_d[h_arg_max_old] %ld h_sum_mu_u[h_arg_max_old] %ld\n",
+		h_arg_max, h_sum_mu_d[h_arg_max], h_sum_mu_u[h_arg_max]);
+	fflush(stdout);
+	gpuErrchk( cudaMemcpy( &h_arg_max, d_arg_max, sizeof( int ), cudaMemcpyDeviceToHost ) );
+	printf( "okST12c h_arg_max %d h_sum_mu_d[h_arg_max] %ld h_sum_mu_u[h_arg_max] %ld\n",
+		h_arg_max, h_sum_mu_d[h_arg_max], h_sum_mu_u[h_arg_max]);
+	fflush(stdout);
 
         if ( block_size < h_sum_mu_d )
         {
