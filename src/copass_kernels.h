@@ -783,7 +783,7 @@ search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
     {
       pos = left + step * tid;
       pos1 = pos + step;
-      if ( pos < size && ( right - pos1 ) >= 1 )
+      if ( pos < size && ( right - pos + step ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
         // printf("bid:%d tid:%ld sa:%ld pos:%ld arr:%ld\n", blockIdx.x, tid,
@@ -905,7 +905,7 @@ my_search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_d
     {
       pos = left + step * tid;
       pos1 = pos + step;
-      if ( pos < size && ( right - pos1 ) >= 1 )
+      if ( pos < size && ( right - pos + step ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
         printf("bid:%d tid:%d sa:%d pos:%d arr:%d\n", (int)blockIdx.x, (int)tid,
@@ -1035,7 +1035,7 @@ search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down
     {
       pos = left + step * tid;
       pos1 = pos + step;
-      if ( pos < size && ( right - pos1 ) >= 1 )
+      if ( pos < size && ( right - pos + step ) >= 1 )
       {
         shared_array[ tid ] = getKey( array, pos );
         // printf("bid:%d tid:%ld sa:%ld pos:%ld arr:%ld\n", blockIdx.x, tid,
