@@ -1271,11 +1271,11 @@ eval_t_tilde_kernel( ArrayT* subarray, position_t* m_u, position_t* m_d, int* ar
 {
   int i = *arg_max;
   position_t m_tilde = ( m_u[ i ] + m_d[ i ] ) / 2;
-  printf("ettk i %d m_u[i] %ld m_d[i] %ld  m_tilde_before %d\n", i, m_u[i], m_d[i], m_tilde);
+  printf("ettk i %d m_u[i] %ld m_d[i] %ld  m_tilde_before %ld\n", i, m_u[i], m_d[i], m_tilde);
   //m_tilde = max( m_tilde - 1, 0 );
   *t_tilde = getKey( subarray[ i ], m_tilde );
 
-  printf("m_tilde: %d\t *t_tilde: %d\n", m_tilde, *t_tilde);
+  printf("m_tilde: %ld\t *t_tilde: %d\n", m_tilde, *t_tilde);
 }
 
 template < class KeyT, class ArrayT >
