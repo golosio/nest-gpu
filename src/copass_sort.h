@@ -604,7 +604,7 @@ copass_sort::sort_template( KeyArrayT key_array,
 
 	  cudaPeekAtLastError();
 	  cudaDeviceSynchronize();
-	  print_array< KeyT, ArrayT ><<<1, 1>>>(d_subarray, d_arg_max);
+	  print_array< KeyT, ArrayT ><<<1, 1>>>(d_subarray, h_arg_max);
 	  cudaPeekAtLastError();
 	  cudaDeviceSynchronize();
 
