@@ -806,8 +806,8 @@ search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
   if ( threadIdx.x == 0 )
   {
     *num_up = right;
-    printf("sbu Kernel block: %ld\tnum_up: %ld\n", blockIdx.x, right);
-    printf("sbu bid: %ld\tleft: %ld\tright: %ld\n", blockIdx.x, left, right);
+    printf("sbu Kernel block: %d\tnum_up: %ld\n", blockIdx.x, right);
+    printf("sbu bid: %d\tleft: %ld\tright: %ld\n", blockIdx.x, left, right);
   }
 }
 
@@ -924,8 +924,8 @@ search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down
   if ( threadIdx.x == 0 )
   {
     *num_down = right;
-    printf("sbd Kernel block: %ld\tnum_up: %ld\n", blockIdx.x, right);
-    printf("sbd bid: %ld\tleft: %ld\tright: %ld\n", blockIdx.x, left, right);
+    printf("sbd Kernel block: %d\tnum_up: %ld\n", blockIdx.x, right);
+    printf("sbd bid: %ld\tleft: %d\tright: %ld\n", blockIdx.x, left, right);
   }
 }
 
