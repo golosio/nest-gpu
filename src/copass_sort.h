@@ -615,7 +615,7 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  
 	  exit(0);
 	}
-	else if (h_max_diff==3) {
+	else if (h_max_diff==3 || h_max_diff==2) {
 	  printf("oknew0 h_arg_max %d arg_max_old %d h_max_diff %ld max_diff_old %ld\n", h_arg_max, arg_max_old, h_max_diff, max_diff_old);
 	  //int iibb = 170;
 	  //int iibb = 3;
