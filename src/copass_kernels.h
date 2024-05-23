@@ -791,7 +791,7 @@ search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
       }
     }
     __syncthreads();
-    if ( ( tid < n_steps ) && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] <= val )
+    if ( ( tid < n_steps ) && pos < size && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] <= val )
       && ( (tid + 1)>=n_steps || pos1>=size || shared_array[ tid + 1 ] > val ) )
     {
       left = pos;
@@ -928,7 +928,7 @@ search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down
       }
     }
     __syncthreads();
-    if ( ( tid < n_steps ) && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] < val )
+    if ( ( tid < n_steps ) && pos < size && ( ( right - pos ) >= 1 ) && ( shared_array[ tid ] < val )
       && ( (tid + 1)>=n_steps || pos1>=size ||  shared_array[ tid + 1 ] >= val ) )
     {
       left = pos;
