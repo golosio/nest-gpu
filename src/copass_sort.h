@@ -615,6 +615,84 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  
 	  exit(0);
 	}
+	else if (h_max_diff==3) {
+	  printf("oknew0 h_arg_max %d arg_max_old %d h_max_diff %ld max_diff_old %ld\n", h_arg_max, arg_max_old, h_max_diff, max_diff_old);
+	  //int iibb = 170;
+	  //int iibb = 3;
+	  int iibb = h_arg_max;
+	  position_t h_m_d[k];
+	  position_t h_m_u[k];
+	  gpuErrchk( cudaMemcpy( h_m_d, d_m_d, k*sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  gpuErrchk( cudaMemcpy( h_m_u, d_m_u, k*sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  position_t jd = h_m_d[iibb];
+	  position_t ju = h_m_u[iibb];
+	  printf("oknew0a tmp_idx %d h_m_d[iibb] %ld h_m_u[iibb] %ld\n", tmp_idx, jd, ju);
+	  printf("oknew0b k %d\n", k); 
+	  fflush(stdout);
+	  //position_t sz0 = h_subarray[0].size;
+	  //printf("okk0c h_subarray[0].size %ld\n", sz0);
+	  //fflush(stdout);
+	  //position_t sz169 = h_subarray[169].size;
+	  //printf("okk0e h_subarray[169].size %ld\n", sz169);
+	  //fflush(stdout);
+	  position_t sz = h_subarray[iibb].size;
+	  printf("oknew0f h_subarray[iibb].size %ld\n", sz);
+	  fflush(stdout);
+	  regular_block_key_value<KeyT, ArrayT> *hsa = (regular_block_key_value<KeyT, ArrayT> *) &h_subarray[iibb]; 
+	  printf("oknew0g hsa->size %ld\n", hsa->size);
+	  fflush(stdout);
+	  printf("oknew0h hsa->offset %ld\n", hsa->offset);
+	  fflush(stdout);
+	  KeyT** h_key_pt = hsa->h_key_pt;
+	  position_t posd = hsa->offset + jd;
+	  position_t posu = hsa->offset + ju;
+	  int blkd = (int)(posd / hsa->block_size);
+	  int blku = (int)(posu / hsa->block_size);
+	  position_t reld = posd % hsa->block_size;
+	  position_t relu = posu % hsa->block_size;
+	  printf("oknew0i posd %ld posu %ld blkd %d blku %d reld %ld relu %ld\n", posd, posu, blkd, blku, reld, relu);
+	  fflush(stdout);
+	  
+	  uint h_keys[block_size];
+	  printf("oknew0j\n");
+	  fflush(stdout);
+	  
+	  KeyT** h_key_pt1[k];
+	  gpuErrchk( cudaMemcpy(h_key_pt1, hsa->key_pt, k * sizeof( KeyT* ), cudaMemcpyDeviceToHost ) );
+	  
+	  gpuErrchk( cudaMemcpy( h_keys, h_key_pt1[blkd], block_size * sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
+	  printf("oknew0k\n");
+	  fflush(stdout);
+
+	  //for (int jj=jd; jj<=ju; jj++) {
+	  for (position_t jj=reld; jj<reld + posu - posd; jj++) {
+	    printf("oknew2 jj %ld h_subarray[iibb][jj] %d\n", jj, h_keys[jj]);
+	    fflush(stdout);
+	  }
+	  //gpuErrchk( cudaMemcpy( h_keys, h_key_pt1[blkd+1], 10 * sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
+	  //for (int jj=jd; jj<=ju; jj++) {
+	  //for (position_t jj=0; jj<10; jj++) {
+	  //  printf("okk3 jj %ld h_subarray[iibb+1][jj] %d\n", jj, h_keys[jj]);
+	  //}
+
+	  eval_t_tilde_kernel< KeyT, ArrayT > <<< 1, 1 >>>( d_subarray, d_m_u, d_m_d, d_arg_max, d_t_tilde );
+	  CUDASYNC;
+	  uint h_t_tilde;
+	  gpuErrchk( cudaMemcpy( &h_t_tilde, d_t_tilde, sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
+	  printf("oknew4 t_tilde %d\n", h_t_tilde);
+
+	  search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
+	  search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
+	  position_t h_mu_d_iibb;
+	  position_t h_mu_u_iibb;
+	  gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  gpuErrchk( cudaMemcpy( &h_mu_d_iibb, &d_mu_d[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  printf("oknew5 h_mu_d_iibb %ld h_mu_u_iibb %ld\n", h_mu_d_iibb, h_mu_u_iibb); 
+	  //my_search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, d_t_tilde, d_mu_u );
+	  //gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	  //printf("oknew6 h_mu_u_iibb %ld\n", h_mu_u_iibb); 
+	}
+
 	arg_max_old = h_arg_max;
 	max_diff_old = h_max_diff;
 	
@@ -672,6 +750,8 @@ copass_sort::sort_template( KeyArrayT key_array,
 		h_arg_max, h_mu_d_am, h_mu_u_am);
 	fflush(stdout);
 
+	
+
         if ( block_size < h_sum_mu_d )
         {
           gpuErrchk( cudaMemcpyAsync( d_m_u, d_mu_d, k * sizeof( position_t ), cudaMemcpyDeviceToDevice ) );
@@ -713,6 +793,28 @@ copass_sort::sort_template( KeyArrayT key_array,
           }
           break;
         }
+	/////////// TEMPORARY
+	eval_t_tilde_kernel< KeyT, ArrayT > <<< 1, 1 >>>( d_subarray, d_mu_u, d_mu_d, d_arg_max, d_t_tilde );
+	CUDASYNC;
+	uint h_t_tilde;
+	gpuErrchk( cudaMemcpy( &h_t_tilde, d_t_tilde, sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
+	printf("okST16 t_tilde %d\n", h_t_tilde);
+	int h_arg_max;
+	gpuErrchk( cudaMemcpy( &h_arg_max, d_arg_max, sizeof( int ), cudaMemcpyDeviceToHost ) );
+	CUDASYNC;
+	search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
+	search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
+	position_t h_mu_d_am;
+	position_t h_mu_u_am;
+	gpuErrchk( cudaMemcpy( &h_mu_u_am, &d_mu_u[h_arg_max], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	gpuErrchk( cudaMemcpy( &h_mu_d_am, &d_mu_d[h_arg_max], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	printf("okST17 h_mu_d_am %ld h_mu_u_am %ld\n", h_mu_d_am, h_mu_u_am); 
+	//my_search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, d_t_tilde, d_mu_u );
+	//gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
+	//printf("okk6 h_mu_u_iibb %ld\n", h_mu_u_iibb); 
+	///////////////////////////////////////////////////////////
+
+	
       }
     }
 
