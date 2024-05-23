@@ -1058,8 +1058,8 @@ search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down
   if ( threadIdx.x == 0 )
   {
     *num_down = right;
-    printf("sbd Kernel block: %d\tnum_up: %ld\n", blockIdx.x, right);
-    printf("sbd bid: %ld\tleft: %d\tright: %ld\n", blockIdx.x, left, right);
+    printf("sbd Kernel block: %d\tnum_up: %d\n", (int)blockIdx.x, (int)right);
+    printf("sbd bid: %ld\tleft: %d\tright: %d\n", (int)blockIdx.x, (int)left, right);
   }
 }
 
@@ -1270,9 +1270,8 @@ search_multi_down( ArrayT* d_subarray, uint k, KeyT* d_val_pt, position_t* d_num
 
 template < class KeyT, class ArrayT, uint bsize >
 int
-my_search_multi_down( ArrayT* d_subarray, uint k, KeyT* d_val_pt, position_t* d_num_down, position_t* d_sum_num_down, int bid)
+my_search_multi_down( ArrayT* d_subarray, uint k, KeyT* d_val_pt, position_t* d_num_down, int bid)
 {
-  gpuErrchk( cudaMemsetAsync( d_sum_num_down, 0, sizeof( position_t ) ) );
   my_search_multi_down_kernel< KeyT, ArrayT, bsize > <<< 1, bsize>>>( d_subarray, d_val_pt, d_num_down, bid );
 
   DBGCUDASYNC
