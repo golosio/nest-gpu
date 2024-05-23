@@ -898,7 +898,7 @@ my_search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_d
       shared_array[ 0 ] = getKey( array, left );
       //shared_array[ n_steps ] = getKey( array, right );
       printf("bid:%d tid:0 n_steps:%d sa:%d right:%d arr:%d step: %d\n",
-	     (int)blockIdx.x, (int)n_steps, (int)shared_array[n_steps], (int)right,
+	     (int)blockIdx.x, (int)n_steps, (int)shared_array[0], (int)right,
 	     (int)getKey(array, right), (int)step);
     }
     else if ( tid <= n_steps )
