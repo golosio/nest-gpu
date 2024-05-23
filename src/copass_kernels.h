@@ -1059,7 +1059,7 @@ search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down
   {
     *num_down = right;
     printf("sbd Kernel block: %d\tnum_up: %d\n", (int)blockIdx.x, (int)right);
-    printf("sbd bid: %ld\tleft: %d\tright: %d\n", (int)blockIdx.x, (int)left, (int)right);
+    printf("sbd bid: %d\tleft: %d\tright: %d\n", (int)blockIdx.x, (int)left, (int)right);
   }
 }
 
@@ -1428,7 +1428,7 @@ eval_t_tilde_kernel( ArrayT* subarray, position_t* m_u, position_t* m_d, int* ar
   //m_tilde = max( m_tilde - 1, 0 );
   *t_tilde = getKey( subarray[ i ], m_tilde );
 
-  printf("m_tilde: %ld\t *t_tilde: %d\n", m_tilde, *t_tilde);
+  printf("m_tilde: %d\t *t_tilde: %d\n", (int)m_tilde, (int)*t_tilde);
 }
 
 template < class KeyT, class ArrayT >
