@@ -1267,9 +1267,9 @@ __global__ void
 eval_t_tilde_kernel( ArrayT* subarray, position_t* m_u, position_t* m_d, int* arg_max, KeyT* t_tilde )
 {
   int i = *arg_max;
-  int m_tilde = ( m_u[ i ] + m_d[ i ] ) / 2;
+  position_t m_tilde = ( m_u[ i ] + m_d[ i ] ) / 2;
   printf("ettk i %d m_u[i] %ld m_d[i] %ld  m_tilde_before %d\n", i, m_u[i], m_d[i], m_tilde);
-  m_tilde = max( m_tilde - 1, 0 );
+  //m_tilde = max( m_tilde - 1, 0 );
   *t_tilde = getKey( subarray[ i ], m_tilde );
 
   printf("m_tilde: %d\t *t_tilde: %d\n", m_tilde, *t_tilde);
