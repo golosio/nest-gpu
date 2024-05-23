@@ -838,6 +838,25 @@ my_search_multi_up_kernel( ArrayT* subarray, KeyT* val_pt, position_t* num_up)
   }
 }
 
+//temporary. Print array
+// find the number of elements < val
+// in a sorted array array[i+1]>=array[i]
+template < class KeyT, class ArrayT>
+__global__ void
+print_array( ArrayT *subarray, int bid )
+{
+  ArrayT array = subarray[ bid ];
+  position_t size = subarray[ bid ].size;
+  for (int i=0; i<size; i++) {
+    KeyT val = getKey(array, i);
+    printf("myarr %d\n", val);
+  }
+}
+
+/////////////////////////////
+
+
+
 // find the number of elements < val
 // in a sorted array array[i+1]>=array[i]
 template < class KeyT, class ArrayT, uint bsize >

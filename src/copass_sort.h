@@ -602,6 +602,12 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  gpuErrchk( cudaMemcpy( &h_t_tilde, d_t_tilde, sizeof( KeyT ), cudaMemcpyDeviceToHost ) );
 	  printf("okk4 t_tilde %d\n", h_t_tilde);
 
+	  cudaPeekAtLastError();
+	  cudaDeviceSynchronize();
+	  print_array< KeyT, ArrayT ><<<1, 1>>>(d_subarray, d_arg_max);
+	  cudaPeekAtLastError();
+	  cudaDeviceSynchronize();
+
 	  search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
 	  search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
 	  position_t h_mu_d_iibb;
