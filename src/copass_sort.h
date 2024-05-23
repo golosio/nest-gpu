@@ -610,6 +610,7 @@ copass_sort::sort_template( KeyArrayT key_array,
 
 	  search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
 	  search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
+	  //my_search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, h_arg_max );
 	  position_t h_mu_d_iibb;
 	  position_t h_mu_u_iibb;
 	  gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
@@ -688,7 +689,8 @@ copass_sort::sort_template( KeyArrayT key_array,
 	  printf("oknew4 t_tilde %d\n", h_t_tilde);
 
 	  search_multi_up< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_u, d_sum_mu_u );
-	  search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
+	  //search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, d_sum_mu_d );
+	  my_search_multi_down< KeyT, ArrayT, 1024 >( d_subarray, k, d_t_tilde, d_mu_d, h_arg_max );
 	  position_t h_mu_d_iibb;
 	  position_t h_mu_u_iibb;
 	  gpuErrchk( cudaMemcpy( &h_mu_u_iibb, &d_mu_u[iibb], sizeof( position_t ), cudaMemcpyDeviceToHost ) );
