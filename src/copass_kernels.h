@@ -909,7 +909,7 @@ my_search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_d
       {
         shared_array[ tid ] = getKey( array, pos );
         printf("bid:%d tid:%d sa:%d pos:%d arr:%d\n", (int)blockIdx.x, (int)tid,
-	       (int)shared_array[tid], (int)pos, (int)array[pos]);
+	       (int)shared_array[tid], (int)pos, (int)getKey(array, pos));
       }
     }
     __syncthreads();
@@ -928,7 +928,7 @@ my_search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_d
   if ( threadIdx.x == 0 )
   {
     *num_down = right;
-    printf("mysbd Kernel block: %d\tnum_up: %ld\n", (int)blockIdx.x, (int)right);
+    printf("mysbd Kernel block: %d\tnum_up: %d\n", (int)blockIdx.x, (int)right);
     printf("mysbd bid: %d\tleft: %d\tright: %d\n", (int)blockIdx.x, (int)left, (int)right);
   }
 }
@@ -1059,7 +1059,7 @@ search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down
   {
     *num_down = right;
     printf("sbd Kernel block: %d\tnum_up: %d\n", (int)blockIdx.x, (int)right);
-    printf("sbd bid: %ld\tleft: %d\tright: %d\n", (int)blockIdx.x, (int)left, right);
+    printf("sbd bid: %ld\tleft: %d\tright: %d\n", (int)blockIdx.x, (int)left, (int)right);
   }
 }
 
