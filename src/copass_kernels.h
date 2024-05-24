@@ -846,7 +846,6 @@ template < class KeyT, class ArrayT, uint bsize >
 __device__ void
 search_block_down( ArrayT array, position_t size, KeyT val, position_t* num_down )
 {
-  __shared__ KeyT shared_array[ bsize + 1 ];
   __shared__ position_t left;
   __shared__ position_t right;
 
