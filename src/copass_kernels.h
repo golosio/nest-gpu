@@ -709,6 +709,84 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
 
 
 
+// Find the number of elements <= val in a sorted array array[i+1]>=array[i]
+// The algorithm works only for blockDim.x >= 2
+// The array must be sorted, otherwise the behavior will be unpredictable
+template < class KeyT, class ArrayT, uint bsize >
+__device__ void
+search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
+{
+  __shared__ position_t left;
+  __shared__ position_t right;
+
+  int tid = threadIdx.x;
+  if ( size == 0 || getKey( array, 0 ) > val )
+  {
+    if ( tid == 0 )
+    {
+      *num_up = 0;
+    }
+    return;
+  }
+  else if ( getKey( array, size - 1 ) <= val )
+  {
+    if ( tid == 0 )
+    {
+      *num_up = size;
+    }
+    return;
+  }
+
+  if ( tid == 0 )
+  {
+    left = 0;
+    right = size - 1;
+    // printf("search_block_up bid:%d tid:0 size:%d\n", (int)blockIdx.x, (int)size);
+    // printf("search_block_up arr[0]: %d arr[n-1] %d val %d\n", (int)getKey(array, 0),
+    // 	   (int)getKey(array, size-1), (int)val);
+  }
+  __syncthreads();
+  while ( ( right - left ) > blockDim.x )
+  {
+    // for tid = 0 : pos0 = left; tid <= blockDim.x - 1 => pos0 < right   
+    position_t pos0 = left + tid * ( right - left ) / blockDim.x;
+    // for tid = blockDim.x - 1 : pos1 = right   
+    position_t pos1 = left + ( tid + 1 ) * ( right - left ) / blockDim.x;
+    // the condition ( right - left ) > blockDim.x ensures that pos1 >= pos0 + 1
+    KeyT val0 = getKey( array, pos0 );
+    KeyT val1 = getKey( array, pos1 );
+    if ( val0 <= val && val1 > val )
+    {
+      left = pos0;
+      right = pos1;
+      // printf("search_block_up narrowing bid:%d tid:%d sa0:%d sa1:%d l:%d r:%d\n", (int)blockIdx.x,
+      //     (int)tid, (int)val0, (int)val1, (int)left, (int)right);
+    }
+    __syncthreads();
+  }
+  // now ( right - left ) <= blockDim.x ), step must be = 1
+  if ( ( right - left ) > 1 && tid < right - left ) {
+    position_t pos0 = left + tid;
+    position_t pos1 = left + tid + 1; // for tid = right - left - 1 : pos1 = right
+    KeyT val0 = getKey( array, pos0 );
+    KeyT val1 = getKey( array, pos1 );
+    if ( val0 <= val && val1 > val )
+    {
+      left = pos0;
+      right = pos1;
+      // printf("search_block_up last bid:%d tid:%d sa0:%d sa1:%d l:%d r:%d\n", (int)blockIdx.x,
+      //     (int)tid, (int)val0, (int)val1, (int)left, (int)right);
+    }
+  }
+  __syncthreads();
+    
+  if ( threadIdx.x == 0 )
+  {
+    *num_up = right;
+    // printf("search_block_up final bid: %d\tleft: %d\tright: %d\n",
+    //	   (int)blockIdx.x, (int)left, (int)right);
+  }
+}
 
 
 
@@ -724,7 +802,7 @@ my_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up 
 // in a sorted array array[i+1]>=array[i]
 template < class KeyT, class ArrayT, uint bsize >
 __device__ void
-search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
+old_search_block_up( ArrayT array, position_t size, KeyT val, position_t* num_up )
 {
   __shared__ KeyT shared_array[ bsize + 1 ];
   __shared__ position_t left;
