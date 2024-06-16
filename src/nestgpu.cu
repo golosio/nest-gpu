@@ -491,6 +491,8 @@ NESTGPU::Calibrate()
     ExternalSpikeInit();
 
     PRINT_TIME;
+
+    //conn_->remoteConnectionMapSave();
   }
 
   if ( conn_->getRevConnFlag() )

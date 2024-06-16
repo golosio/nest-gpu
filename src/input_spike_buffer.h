@@ -132,7 +132,46 @@ getMaxInputDelayKernel( int64_t n_conn, int** max_input_delay )
   atomicMax( &max_input_delay[ i_target ][ i_port ], i_delay + 1 );
 }
 
+template < class ConnKeyT, class ConnStructT >
+__global__ void
+testMaxInputDelayKernel( int64_t n_conn, int** max_input_delay, int n_local_nodes, int max_n_ports )
+{
+  int64_t i_conn = ( int64_t ) blockIdx.x * blockDim.x + threadIdx.x;
+  if ( i_conn >= n_conn )
+  {
+    return;
+  }
+  // get connection block and relative index within the block
+  uint i_block = ( uint ) ( i_conn / ConnBlockSize );
+  int64_t i_block_conn = i_conn % ConnBlockSize;
 
+  // get references to key-structure pair representing the connection
+  ConnKeyT& conn_key = ( ( ConnKeyT** ) ConnKeyArray )[ i_block ][ i_block_conn ];
+  ConnStructT& conn_struct = ( ( ConnStructT** ) ConnStructArray )[ i_block ][ i_block_conn ];
+
+  // MAYBE CAN BE IMPROVED BY USING A BIT TO SPECIFY IF A CONNECTION IS DIRECT
+  // get target node index and delay
+  inode_t i_target = getConnTarget< ConnStructT >( conn_struct );
+  int i_port = getConnPort< ConnKeyT, ConnStructT >( conn_key, conn_struct );
+  int i_delay = getConnDelay< ConnKeyT >( conn_key );
+
+  if (i_target>=n_local_nodes) {
+    printf("i_target %d >= n_local_nodes %d\n", i_target, n_local_nodes);
+    printf("i_delay %d\n", i_delay);
+  }
+  if (i_port>=max_n_ports) {
+    printf("i_port %d >= max_n_port %d\t", i_port, max_n_ports);
+    printf("i_target %d\n", i_target);
+
+  }
+  
+  // atomic operation to avoid conflicts in memory access
+  // if delay is larger than current maximum evaluated for target node, update the maximum
+  //atomicMax( &max_input_delay[ i_target ][ i_port ], i_delay + 1 );
+}
+
+
+  
 // Evaluates the index of the first outgoing connection of each source node
 template < class ConnKeyT >
 __global__ void
@@ -452,6 +491,8 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::initInputSpikeBuffer( inode_t n_loc
   }
 
   if (n_conn_ > 0) {
+    //testMaxInputDelayKernel< ConnKeyT, ConnStructT > <<< ( n_conn_ + 1023 ) / 1024, 1024 >>>(n_conn_, d_max_input_delay_, n_local_nodes, 2 );
+    //CUDASYNC;
     getMaxInputDelayKernel< ConnKeyT, ConnStructT > <<< ( n_conn_ + 1023 ) / 1024, 1024 >>>(n_conn_, d_max_input_delay_ );
     DBGCUDASYNC;
   }

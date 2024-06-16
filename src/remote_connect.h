@@ -3,6 +3,8 @@
 #define REMOTECONNECTH
 // #include <cub/cub.cuh>
 #include <vector>
+#include <fstream>
+
 #include "getRealTime.h"
 // #include "nestgpu.h"
 #include "connect.h"
@@ -763,6 +765,120 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapCalibrate( inode
  
   return 0;
 }
+
+template < class ConnKeyT, class ConnStructT >
+int
+ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapSave()
+{
+  std::vector< std::vector< uint > > hc_remote_source_node_map;
+  std::vector< std::vector< uint > > hc_image_node_map;
+  
+  hc_remote_source_node_map.resize(n_hosts_);
+  hc_image_node_map.resize(n_hosts_);
+  
+  for ( int src_host = 0; src_host < n_hosts_; src_host++ ) {// loop on hosts
+    if ( src_host != this_host_ ) { // skip self host
+      // get number of elements in the map
+      uint n_node_map;
+      gpuErrchk(
+		cudaMemcpy( &n_node_map, &d_n_remote_source_node_map_[0][ src_host ], sizeof( uint ), cudaMemcpyDeviceToHost ) );
+      
+      std::cout << "src_host: " << src_host << " n_node_map: " << n_node_map << "\n";
+      
+      if (n_node_map > 0) {
+	hc_remote_source_node_map[src_host].resize(n_node_map);
+	hc_image_node_map[src_host].resize(n_node_map);
+	// loop on remote-source-node-to-local-image-node map blocks
+	uint n_map_blocks =  h_remote_source_node_map_[0][src_host].size();
+	std::cout << "src_host: " << src_host << " n_node_map: " << n_node_map << " n_map_blocks: " << n_map_blocks << "\n";
+	
+	for (uint ib=0; ib<n_map_blocks; ib++) {
+	  uint n_elem;
+	  if (ib<n_map_blocks-1) {
+	    n_elem = node_map_block_size_;
+	  }
+	  else {
+	    n_elem = (n_node_map - 1) % node_map_block_size_ + 1;
+	  }
+	  gpuErrchk(cudaMemcpy(&hc_remote_source_node_map[src_host][ib*node_map_block_size_],
+			       h_remote_source_node_map_[0][src_host][ib], n_elem*sizeof(uint), cudaMemcpyDeviceToHost ));
+	  gpuErrchk(cudaMemcpy(&hc_image_node_map[src_host][ib*node_map_block_size_],
+			       h_image_node_map_[0][src_host][ib], n_elem*sizeof(uint), cudaMemcpyDeviceToHost ));
+	}
+	
+      }
+      
+      std::string filename = std::string("map_remote_src_") + std::to_string(this_host_) + "_" + std::to_string(src_host) + ".dat";
+      std::ofstream ofs;
+      ofs.open(filename, std::ios::out);      
+      if ( ofs.fail() ) {
+	std::cerr << "Cannot open output file\n"; 
+	exit(-1);
+      }
+      ofs << n_node_map << std::endl;
+      for (uint i=0; i<n_node_map; i++) {
+	ofs << hc_remote_source_node_map[src_host][i] << "\t" << hc_image_node_map[src_host][i] << std::endl;
+      }
+      ofs.close();
+
+    }
+  }
+
+
+  std::vector< std::vector< uint > > hc_local_source_node_map;
+  
+  hc_local_source_node_map.resize(n_hosts_);
+  
+  for ( int tg_host = 0; tg_host < n_hosts_; tg_host++ ) {// loop on hosts
+    if ( tg_host != this_host_ ) { // skip self host
+      // get number of elements in the map
+      uint n_node_map;
+      gpuErrchk(
+		cudaMemcpy( &n_node_map, &d_n_local_source_node_map_[ tg_host ], sizeof( uint ), cudaMemcpyDeviceToHost ) );
+      
+      std::cout << "tg_host: " << tg_host << " n_node_map: " << n_node_map << "\n";
+      
+      if (n_node_map > 0) {
+	hc_local_source_node_map[tg_host].resize(n_node_map);
+	// loop on remote-source-node-to-local-image-node map blocks
+	uint n_map_blocks =  h_local_source_node_map_[tg_host].size();
+	std::cout << "tg_host: " << tg_host << " n_node_map: " << n_node_map << " n_map_blocks: " << n_map_blocks << "\n";
+	
+	for (uint ib=0; ib<n_map_blocks; ib++) {
+	  uint n_elem;
+	  if (ib<n_map_blocks-1) {
+	    n_elem = node_map_block_size_;
+	  }
+	  else {
+	    n_elem = (n_node_map - 1) % node_map_block_size_ + 1;
+	  }
+	  gpuErrchk(cudaMemcpy(&hc_local_source_node_map[tg_host][ib*node_map_block_size_],
+			       h_local_source_node_map_[tg_host][ib], n_elem*sizeof(uint), cudaMemcpyDeviceToHost ));
+	}
+	
+      }
+      
+      std::string filename = std::string("map_local_src_") + std::to_string(this_host_) + "_" + std::to_string(tg_host) + ".dat";
+      std::ofstream ofs;
+      ofs.open(filename, std::ios::out);      
+      if ( ofs.fail() ) {
+	std::cerr << "Cannot open output file\n"; 
+	exit(-1);
+      }
+      ofs << n_node_map << std::endl;
+      for (uint i=0; i<n_node_map; i++) {
+	ofs << hc_local_source_node_map[tg_host][i] << std::endl;
+      }
+      ofs.close();
+
+    }
+  }
+  
+  return 0;
+}
+
+
+
 
 template < class ConnKeyT, class ConnStructT >
 int
