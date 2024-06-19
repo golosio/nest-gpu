@@ -181,9 +181,8 @@ PushSpike( int i_spike_buffer, float mul )
       if ( n_rec_spike_times >= max_n_rec_spike_times - 1 )
       {
         printf(
-          "Maximum number of recorded spike times exceeded"
-          " for spike buffer %d\n",
-          i_spike_buffer );
+          "Maximum number of recorded spike times %d exceeded"
+          " for spike buffer %d\n", max_n_rec_spike_times, i_spike_buffer );
       }
       else
       { // record spike time

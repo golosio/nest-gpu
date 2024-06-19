@@ -684,40 +684,41 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapCalibrate( inode
 
   PRINT_TIME;
 
-  uint n_src_max = 0;
-  
+  uint src_node_max = 0;
+
+  std::vector< std::unordered_set <int> > node_target_host_group_us;
   node_target_host_group_.resize(n_nodes);
+  node_target_host_group_us.resize(n_nodes);
+  
   for (uint group_local_id=1; group_local_id<nhg; group_local_id++) {
     host_group_local_source_node_map_[group_local_id].resize(n_nodes);
     uint nh = host_group_[group_local_id].size(); // number of hosts in the group
     for ( uint gi_host = 0; gi_host < nh; gi_host++ ) {// loop on hosts
       uint n_src = host_group_source_node_[group_local_id][gi_host].size();
-      n_src_max = max(n_src_max, n_src);
+      //n_src_max = max(n_src_max, n_src);
       host_group_source_node_vect_[group_local_id][gi_host].resize(n_src);
       std::copy(host_group_source_node_[group_local_id][gi_host].begin(), host_group_source_node_[group_local_id][gi_host].end(),
 		host_group_source_node_vect_[group_local_id][gi_host].begin());
       
       host_group_local_node_index_[group_local_id][gi_host].resize(n_src);
 
-      /////////////// check that the following is not needed
-      //std::fill(host_group_local_node_index_[group_local_id][gi_host].begin(), host_group_local_node_index_[group_local_id][gi_host].end(), -1);
     }
   }
   
   PRINT_TIME;
-  std::vector<uint> tmp_node_map(n_src_max, 0);
-  
-    
+  std::vector<int64_t> tmp_node_map;
+  //tmp_node_map.resize(src_node_max);
+
   for (uint group_local_id=1; group_local_id<nhg; group_local_id++) {
     uint nh = host_group_[group_local_id].size(); // number of hosts in the group
     for ( uint gi_host = 0; gi_host < nh; gi_host++ ) {// loop on hosts
       int src_host = host_group_[group_local_id][gi_host];
+      ///*
       if ( src_host != this_host_ ) { // skip self host
 	// get number of elements in the map
 	uint n_node_map;
 	gpuErrchk(
 		  cudaMemcpy( &n_node_map, &d_n_remote_source_node_map_[group_local_id][ gi_host ], sizeof( uint ), cudaMemcpyDeviceToHost ) );
-
 	if (n_node_map > 0) {
 	  hc_remote_source_node_map_[group_local_id][gi_host].resize(n_node_map);
 	  hc_image_node_map_[group_local_id][gi_host].resize(n_node_map);
@@ -736,19 +737,44 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapCalibrate( inode
 	    gpuErrchk(cudaMemcpy(&hc_image_node_map_[group_local_id][gi_host][ib*node_map_block_size_],
 				 h_image_node_map_[group_local_id][gi_host][ib], n_elem*sizeof(uint), cudaMemcpyDeviceToHost ));
 	  }
-       
+       	  ///*
+	  bool resize_flag = false;
+	  for (uint i=0; i<n_node_map; i++) {
+	    inode_t src_node = hc_remote_source_node_map_[group_local_id][gi_host][i];
+	    if (src_node>src_node_max) {
+	      resize_flag = true;
+	      src_node_max = src_node;
+	      //std::cerr << "Error. src_node: " << src_node << " greater than n_src_max: " << n_src_max << std::endl;
+	      //exit(0);
+	    }
+	  }
+	  if ( resize_flag ) {
+	    tmp_node_map.resize(src_node_max+1);
+	  }
+	  std::fill(tmp_node_map.begin(), tmp_node_map.end(), -1);
 	  for (uint i=0; i<n_node_map; i++) {
 	    inode_t src_node = hc_remote_source_node_map_[group_local_id][gi_host][i];
 	    tmp_node_map[src_node] = hc_image_node_map_[group_local_id][gi_host][i];
 	  }
+	  
 	  for (uint i=0; i<host_group_source_node_vect_[group_local_id][gi_host].size(); i++) {
 	    inode_t src_node = host_group_source_node_vect_[group_local_id][gi_host][i];
-	    inode_t pos = tmp_node_map[src_node];
+	    int64_t pos;
+	    if (src_node>src_node_max) {
+	      pos = -1;
+	    }
+	    else {
+	      pos = tmp_node_map[src_node];
+	    }
 	    //if (pos<0) {
 	    //  throw ngpu_exception( "source node not found in host map" );
 	    //}
 	    host_group_local_node_index_[group_local_id][gi_host][i] = pos;
 	  }
+	  
+	}
+	else {
+	  std::fill(host_group_local_node_index_[group_local_id][gi_host].begin(), host_group_local_node_index_[group_local_id][gi_host].end(), -1);
 	}
       }
       else { // only in the source, i.e. if src_host == this_host_
@@ -756,13 +782,17 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapCalibrate( inode
 	for (uint i=0; i<n_src; i++) {
 	  inode_t i_source = host_group_source_node_vect_[group_local_id][gi_host][i];
 	  host_group_local_source_node_map_[group_local_id][i_source] = i;
-	  node_target_host_group_[i_source].insert(group_local_id);	  
+	  std::pair<std::unordered_set<int>::iterator, bool> insert_it =
+	    node_target_host_group_us[i_source].insert(group_local_id);
+	  if (insert_it.second){
+	    node_target_host_group_[i_source].push_back(group_local_id);
+	  }
 	}
       }
     }
   }
   PRINT_TIME;
- 
+
   return 0;
 }
 
@@ -783,14 +813,11 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapSave()
       gpuErrchk(
 		cudaMemcpy( &n_node_map, &d_n_remote_source_node_map_[0][ src_host ], sizeof( uint ), cudaMemcpyDeviceToHost ) );
       
-      std::cout << "src_host: " << src_host << " n_node_map: " << n_node_map << "\n";
-      
       if (n_node_map > 0) {
 	hc_remote_source_node_map[src_host].resize(n_node_map);
 	hc_image_node_map[src_host].resize(n_node_map);
 	// loop on remote-source-node-to-local-image-node map blocks
 	uint n_map_blocks =  h_remote_source_node_map_[0][src_host].size();
-	std::cout << "src_host: " << src_host << " n_node_map: " << n_node_map << " n_map_blocks: " << n_map_blocks << "\n";
 	
 	for (uint ib=0; ib<n_map_blocks; ib++) {
 	  uint n_elem;
@@ -836,13 +863,10 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::remoteConnectionMapSave()
       gpuErrchk(
 		cudaMemcpy( &n_node_map, &d_n_local_source_node_map_[ tg_host ], sizeof( uint ), cudaMemcpyDeviceToHost ) );
       
-      std::cout << "tg_host: " << tg_host << " n_node_map: " << n_node_map << "\n";
-      
       if (n_node_map > 0) {
 	hc_local_source_node_map[tg_host].resize(n_node_map);
 	// loop on remote-source-node-to-local-image-node map blocks
 	uint n_map_blocks =  h_local_source_node_map_[tg_host].size();
-	std::cout << "tg_host: " << tg_host << " n_node_map: " << n_node_map << " n_map_blocks: " << n_map_blocks << "\n";
 	
 	for (uint ib=0; ib<n_map_blocks; ib++) {
 	  uint n_elem;
@@ -1652,7 +1676,7 @@ ConnectionTemplate< ConnKeyT, ConnStructT >::CreateHostGroup(int *host_arr, int 
     host_group_source_node_vect_.push_back(empty_node_vect);
     
     host_group_local_source_node_map_.push_back(std::vector< uint >());
-    std::vector< std::vector< int > > hg_lni(hg.size(), std::vector< int >());
+    std::vector< std::vector< int64_t > > hg_lni(hg.size(), std::vector< int64_t >());
     host_group_local_node_index_.push_back(hg_lni);
   }
 #ifdef HAVE_MPI

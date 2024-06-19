@@ -118,7 +118,9 @@ public:
   virtual uint** getDevNodeTargetHostIMap() = 0;
 
   // get remote target host groups of all nodes
-  virtual std::vector< std::unordered_set < int > > &getNodeTargetHostGroup() = 0;
+  virtual const std::vector< std::vector < int > > &getNodeTargetHostGroup() const = 0;
+  
+  //virtual int copyNodeTargetHostGroup(inode_t i_node, uint *copy_array) = 0;
   
   // get map of local source nodes positions in host group node map
   virtual std::vector< std::vector< uint > > &getHostGroupLocalSourceNodeMap() = 0;
@@ -135,7 +137,7 @@ public:
 #endif
   
   // return map of host group source nodes to local image nodes
-  virtual std::vector<std::vector< std::vector< int > > > &getHostGroupLocalNodeIndex() = 0;
+  virtual std::vector<std::vector< std::vector< int64_t > > > &getHostGroupLocalNodeIndex() = 0;
 
   // get point-to-point MPI communication activation matrix
   virtual std::vector< std::vector < bool > > &getP2PHostConnMatrix() = 0;
@@ -652,10 +654,10 @@ class ConnectionTemplate : public Connection
   // same as above, but ordered
   std::vector<std::vector< std::vector< inode_t > > > host_group_source_node_vect_;
   // map of host group source nodes to local image nodes
-  std::vector<std::vector< std::vector< int > > > host_group_local_node_index_;
+  std::vector<std::vector< std::vector< int64_t > > > host_group_local_node_index_;
 
   // local ids of the host groups to which each node should send spikes
-  std::vector< std::unordered_set< int > > node_target_host_group_; // [n_local_nodes ][num. of target host groups ]
+  std::vector< std::vector< int > > node_target_host_group_; // [n_local_nodes ][num. of target host groups ]
   //////////////////////////////////////////////////
   // class ConnectionTemplate methods
   //////////////////////////////////////////////////
@@ -778,7 +780,7 @@ public:
     return d_node_target_host_i_map_;
   }
 
-  std::vector< std::unordered_set < int > > &getNodeTargetHostGroup()
+  const std::vector< std::vector < int > > &getNodeTargetHostGroup() const
   {
     return node_target_host_group_;
   }
@@ -811,7 +813,7 @@ public:
   }
   
   // return map of host group source nodes to local image nodes
-  std::vector<std::vector< std::vector< int > > > &getHostGroupLocalNodeIndex()
+  std::vector<std::vector< std::vector< int64_t > > > &getHostGroupLocalNodeIndex()
   {
     return host_group_local_node_index_;
   }
