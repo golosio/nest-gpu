@@ -466,8 +466,11 @@ class ConnectionTemplate : public Connection
   // n_remote_source_node_map[group_local_id][i_host]
   // with i_host = 0, ...,  host_group_[group_local_id].size()-1 excluding this host itself
   std::vector< std::vector< uint > > h_n_remote_source_node_map_;
+  
+public:
   std::vector< uint* > d_n_remote_source_node_map_;
-
+private:
+  
   // remote_source_node_map_[group_local_id][i_host][i_block][i]
   std::vector< std::vector< std::vector< uint* > > > h_remote_source_node_map_;
 

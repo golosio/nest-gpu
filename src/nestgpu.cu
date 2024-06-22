@@ -658,40 +658,53 @@ NESTGPU::SimulationStep()
   }
   */
 
+  CUDASYNC;
   for ( unsigned int i = 0; i < node_vect_.size(); i++ )
   {
     node_vect_[ i ]->Update( it_, neural_time_ );
   }
-  DBGCUDASYNC;
+  CUDASYNC;
 
   neuron_Update_time_ += ( getRealTime() - time_mark );
   multimeter_->WriteRecords( neural_time_, time_idx );
-  
+  CUDASYNC;
   if ( n_hosts_ > 1 )
   {
     int n_ext_spikes;
     time_mark = getRealTime();
+    CUDASYNC;
     gpuErrchk( cudaMemcpy( &n_ext_spikes, d_ExternalSpikeNum, sizeof( int ), cudaMemcpyDeviceToHost ) );
+    CUDASYNC;
     copy_ext_spike_time_ += ( getRealTime() - time_mark );
 
     if ( n_ext_spikes != 0 )
     {
       time_mark = getRealTime();
+      CUDASYNC;
       organizeExternalSpikes( n_ext_spikes );
+      CUDASYNC;
       organizeExternalSpike_time_ += ( getRealTime() - time_mark );
     }
     time_mark = getRealTime();
+    CUDASYNC;
     SendSpikeToRemote( n_ext_spikes );
+    CUDASYNC;
 
     SendSpikeToRemote_time_ += ( getRealTime() - time_mark );
     time_mark = getRealTime();
+    CUDASYNC;
     RecvSpikeFromRemote();
+    CUDASYNC;
     RecvSpikeFromRemote_time_ += ( getRealTime() - time_mark );
+    CUDASYNC;
     CopySpikeFromRemote();
+    CUDASYNC;
   }
-  
+
+  CUDASYNC;
   if ( conn_->getSpikeBufferAlgo() == INPUT_SPIKE_BUFFER_ALGO )
   {
+    CUDASYNC;
     conn_->deliverSpikes();
   }
   else

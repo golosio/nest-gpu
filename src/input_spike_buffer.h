@@ -642,6 +642,7 @@ template < class ConnKeyT, class ConnStructT >
 int
 ConnectionTemplate< ConnKeyT, ConnStructT >::deliverSpikes()
 {
+  CUDASYNC;
   int n_spikes;
   gpuErrchk( cudaMemcpy( &n_spikes, d_n_spikes_, sizeof( int ), cudaMemcpyDeviceToHost ) );
   if ( n_spikes > 0 )

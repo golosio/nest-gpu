@@ -44,7 +44,7 @@ int
 NESTGPU::SendSpikeToRemote( int n_ext_spikes )
 {
 #ifdef HAVE_MPI
-  MPI_Request request;
+  //MPI_Request request;
   int mpi_id, tag = 1; // id is already in the class, can be removed
   MPI_Comm_rank( MPI_COMM_WORLD, &mpi_id );
 
@@ -109,23 +109,45 @@ NESTGPU::SendSpikeToRemote( int n_ext_spikes )
  
   SendSpikeToRemote_CUDAcp_time_ += ( getRealTime() - time_mark );
   time_mark = getRealTime();
-
+  if (this_host_==27 || this_host_==31) {
+     std::cout << "matr this_host " << this_host_ << " [this_host_][26] " << p2p_host_conn_matrix[this_host_][26] << "\n";
+  }
+  if (this_host_==26 || this_host_==31) {
+     std::cout << "matr this_host " << this_host_ << " [this_host_][27] " << p2p_host_conn_matrix[this_host_][27] << "\n";
+  }
+  if (this_host_==26 || this_host_==27) {
+     std::cout << "matr this_host " << this_host_ << " [this_host_][31] " << p2p_host_conn_matrix[this_host_][31] << "\n";
+  }
+  
   // loop on remote MPI proc
   for ( int ih = 0; ih < n_hosts_; ih++ )
   {
-    if ( ( int ) ih == mpi_id || p2p_host_conn_matrix[this_host_][ih]==false)
+    if (ih == mpi_id || p2p_host_conn_matrix[this_host_][ih]==false)
     { // skip self MPI proc and unused point-to-point MPI communications
+      recv_mpi_request[ n_hosts_ + ih ] = MPI_REQUEST_NULL;   
       continue;
     }
     // get index and size of spike packet that must be sent to MPI proc ih
     // array_idx is the first index of the packet for host ih
     int array_idx = h_ExternalTargetSpikeIdx0[ ih ];
     int n_spikes = h_ExternalTargetSpikeIdx0[ ih + 1 ] - array_idx;
-    // printf("MPI_Send (src,tgt,nspike): %d %d %d\n", mpi_id, ih, n_spike);
-
+    if ((this_host_ == 26 || this_host_ == 27) && ih==31) {
+       std::cout << "MPI_Send1 this_host " << this_host_ << " ih " << ih
+                 << " h_ExternalTargetSpikeIdx0[ih] " << h_ExternalTargetSpikeIdx0[ih]
+		 << " [ih+1] " << h_ExternalTargetSpikeIdx0[ih+1] << std::endl; 
+       std::cout << "MPI_Send2 this_host " << this_host_ << " ih " << ih
+                 << " n_spikes " << n_spikes << " max_spike_per_host " << max_spike_per_host_ << std::endl; 
+    }
     // nonblocking sent of spike packet to MPI proc ih
-    MPI_Isend( &h_ExternalTargetSpikeNodeId[ array_idx ], n_spikes, MPI_INT, ih, tag, MPI_COMM_WORLD, &request );
-    MPI_Request_free(&request);
+    if (n_spikes >= max_spike_per_host_) {
+       std::cout << "MPI_Send error from host " << this_host_ << " to host " << ih
+                 << " n_spikes " << n_spikes << " >= max_spike_per_host " << max_spike_per_host_ << std::endl;
+       exit(-1);
+    }
+
+    MPI_Isend( &h_ExternalTargetSpikeNodeId[ array_idx ], n_spikes, MPI_UNSIGNED, ih, tag, MPI_COMM_WORLD,
+               &recv_mpi_request[ n_hosts_ + ih ] ); //&request );
+    //MPI_Request_free(&request);
 
     // printf("MPI_Send nspikes (src,tgt,nspike): "
     //	   "%d %d %d\n", mpi_id, ih, n_spikes);
@@ -158,25 +180,27 @@ NESTGPU::RecvSpikeFromRemote()
   // loop on remote MPI proc
   for ( int i_host = 0; i_host < n_hosts_; i_host++ )
   {
-    if ( ( int ) i_host == mpi_id || p2p_host_conn_matrix[i_host][this_host_]==false)
+    //recv_mpi_request[ i_host ] = MPI_REQUEST_NULL;
+    if (i_host == mpi_id || p2p_host_conn_matrix[i_host][this_host_]==false)
     {
       recv_mpi_request[ i_host ] = MPI_REQUEST_NULL;
-      continue; // skip self MPI proc
+      continue;
     }
     // start nonblocking MPI receive from MPI proc i_host
     MPI_Irecv( &h_ExternalSourceSpikeNodeId[0][ i_host * max_spike_per_host_ ],
       max_spike_per_host_,
-      MPI_INT,
+      MPI_UNSIGNED,
       i_host,
       tag,
       MPI_COMM_WORLD,
       &recv_mpi_request[ i_host ] );
   }
-  MPI_Status statuses[ n_hosts_ ];
+  MPI_Status statuses[ 2*n_hosts_ ];
   //recv_mpi_request[ mpi_id ] = MPI_REQUEST_NULL;
   //MPI_Waitall( n_hosts_ + nhg - 1, recv_mpi_request, statuses );
-  MPI_Waitall( n_hosts_, recv_mpi_request, statuses );
+  MPI_Waitall( 2*n_hosts_, recv_mpi_request, statuses );
 
+/*
   std::vector< std::vector< int > > &host_group = conn_->getHostGroup();
   std::vector<MPI_Comm> &mpi_comm_vect = conn_->getMPIComm();
   uint nhg = host_group.size();
@@ -199,7 +223,7 @@ NESTGPU::RecvSpikeFromRemote()
     MPI_Allgatherv(sendbuf, sendcount, MPI_INT, recvbuf, recvcounts, displs, MPI_INT, mpi_comm_vect[ihg-1]);
 
   }
-
+*/
   /* 
   MPI_Status statuses[ n_hosts_ + nhg - 1];
   recv_mpi_request[ mpi_id ] = MPI_REQUEST_NULL;
@@ -215,9 +239,17 @@ NESTGPU::RecvSpikeFromRemote()
     }
     int count = 0;
     if (p2p_host_conn_matrix[i_host][this_host_]==true) {
-      MPI_Get_count( &statuses[ i_host ], MPI_INT, &count );
+      MPI_Get_count( &statuses[ i_host ], MPI_UNSIGNED, &count );
+    }
+    if (count < 0) {
+       std::cout << "MPI_Irecv error in host " << this_host_ << " from host " << i_host
+                 << " spike recv count: " << count << " max_spike_per_host " << max_spike_per_host_ << std::endl;
+       exit(-1);
     }
     h_ExternalSourceSpikeNum[0][ i_host ] = count;
+    if (this_host_==31 && (i_host==26 || i_host==27)) {
+       std::cout << "MPI_Irecv after count this_host " << this_host_ << " i_host " << i_host << " recv count " << count << "\n";
+    }
   }
   
   // Maybe the barrier is not necessary?
@@ -249,7 +281,7 @@ NESTGPU::ConnectMpiInit( int argc, char* argv[] )
   setNHosts( n_hosts );
   setThisHost( this_host );
   //conn_->remoteConnectionMapInit();
-  recv_mpi_request = new MPI_Request[ n_hosts_ ];
+  recv_mpi_request = new MPI_Request[ 2*n_hosts_ ];
 
   return 0;
 #else

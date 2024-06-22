@@ -31,6 +31,7 @@ __constant__ bool have_remote_spike_mul;
 #include "getRealTime.h"
 #include "spike_buffer.h"
 #include "utilities.h"
+#include "conn12b.h"
 
 #include "remote_spike.h"
 
@@ -650,11 +651,25 @@ NESTGPU::organizeExternalSpikes( int n_ext_spikes )
   return 0;
 }
 
+__global__ void
+checkMapIndexToImageNodeKernel( uint n_hosts, uint* host_offset, uint* node_index, uint *n_map,
+                               uint node_index_size, int this_host);
+
+
+
 // pack spikes received from remote hosts
 // and copy them to GPU memory
 int
 NESTGPU::CopySpikeFromRemote()
 {
+  ////// TEMPORARY
+  if (this_host_ == 31) {
+    for (int i=0; i<32; i++) {
+      std::cout << "CSFR1 this_host " << this_host_ << " i_host " << i
+                << " n_spike " << h_ExternalSourceSpikeNum[0][ i ] << "\n";
+    }
+  }
+/////////////////////////////////
   int n_spike_tot = 0;
   h_ExternalSourceSpikeIdx0[ 0 ] = 0;
   // loop on hosts
@@ -662,6 +677,12 @@ NESTGPU::CopySpikeFromRemote()
   {
     int n_spike = h_ExternalSourceSpikeNum[0][ i_host ];
     h_ExternalSourceSpikeIdx0[ i_host + 1 ] = h_ExternalSourceSpikeIdx0[ i_host ] + n_spike;
+    ////// TEMPORARY
+    if (this_host_ == 31) {
+      std::cout << "CSFR2 this_host " << this_host_ << " i_host " << i_host
+                << " n_spike " << n_spike << " h_ExternalSourceSpikeIdx0[i_host+1] "
+                << h_ExternalSourceSpikeIdx0[ i_host + 1 ] << "\n";
+    }
     for ( int i_spike = 0; i_spike < n_spike; i_spike++ )
     {
       // pack spikes received from remote hosts
@@ -721,6 +742,16 @@ NESTGPU::CopySpikeFromRemote()
       cudaMemcpyHostToDevice ) );
     DBGCUDASYNC;
     RecvSpikeFromRemote_CUDAcp_time_ += ( getRealTime() - time_mark );
+
+    ConnectionTemplate<conn12b_key, conn12b_struct> *my_conn = static_cast< ConnectionTemplate < conn12b_key,\
+        conn12b_struct>* >(conn_);
+    uint *n_map = my_conn->d_n_remote_source_node_map_[0];
+    checkMapIndexToImageNodeKernel<<< n_hosts_, 1024 >>>(
+      n_hosts_, d_ExternalSourceSpikeIdx0, d_ExternalSourceSpikeNodeId,
+      n_map, max_remote_spike_num_, this_host_); // n_spike_tot -> max_remote_spike_num_
+    CUDASYNC;
+    
+
     // convert node map indexes to image node indexes
     MapIndexToImageNodeKernel<<< n_hosts_, 1024 >>>(
       n_hosts_, d_ExternalSourceSpikeIdx0, d_ExternalSourceSpikeNodeId );
