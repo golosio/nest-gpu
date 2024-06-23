@@ -671,7 +671,8 @@ NESTGPU::CopySpikeFromRemote()
       if ( n_spike_tot >= max_remote_spike_num_ )
 	{
 	  throw ngpu_exception( std::string( "Number of spikes to be received remotely " ) + std::to_string( n_spike_tot )
-				+ " larger than limit " + std::to_string( max_remote_spike_num_ ) );
+				+ " larger than limit " + std::to_string( max_remote_spike_num_ )
+				+ "\nYou can try to increase the kernel parameter \"max_remote_spike_num_fact\"." );
 	} 
     }
   }
@@ -721,6 +722,14 @@ NESTGPU::CopySpikeFromRemote()
       cudaMemcpyHostToDevice ) );
     DBGCUDASYNC;
     RecvSpikeFromRemote_CUDAcp_time_ += ( getRealTime() - time_mark );
+
+    std::vector< uint* > &d_n_remote_source_node_map = conn->getDevNRemoteSourceNodeMap();;
+    uint *n_map = d_n_remote_source_node_map[0];
+    checkMapIndexToImageNodeKernel<<< n_hosts_, 1024 >>>(
+      n_hosts_, d_ExternalSourceSpikeIdx0, d_ExternalSourceSpikeNodeId,
+      n_map, max_remote_spike_num_, this_host_); // n_spike_tot -> max_remote_spike_num_
+    CUDASYNC;
+    
     // convert node map indexes to image node indexes
     MapIndexToImageNodeKernel<<< n_hosts_, 1024 >>>(
       n_hosts_, d_ExternalSourceSpikeIdx0, d_ExternalSourceSpikeNodeId );

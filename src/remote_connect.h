@@ -212,7 +212,10 @@ addOffsetToExternalNodeIdsKernel( int64_t n_conn,
 
 __global__ void MapIndexToImageNodeKernel( uint n_hosts, uint* host_offset, uint* node_index );
 
-
+// only for debugging
+__global__ void
+checkMapIndexToImageNodeKernel( uint n_hosts, uint* host_offset, uint* node_index, uint *n_map,
+                               uint node_index_size, int this_host);
 
 // Allocate GPU memory for new remote-source-node-map blocks
 template < class ConnKeyT, class ConnStructT >

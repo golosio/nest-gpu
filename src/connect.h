@@ -288,6 +288,10 @@ public:
   // calibrate the maps used to send spikes among remote hosts
   virtual int remoteConnectionMapCalibrate( inode_t n_nodes ) = 0;
 
+  // get vector of number of elements in the maps of remote source nodes to local image nodes
+  virtual std::vector< uint* >  getDevNRemoteSourceNodeMap() = 0;
+
+  // only for debugging, save remote connection P2P maps
   virtual int remoteConnectionMapSave() = 0;
   
   // remote connection methods. 4 combinations where source and target can be either
@@ -466,8 +470,10 @@ class ConnectionTemplate : public Connection
   // n_remote_source_node_map[group_local_id][i_host]
   // with i_host = 0, ...,  host_group_[group_local_id].size()-1 excluding this host itself
   std::vector< std::vector< uint > > h_n_remote_source_node_map_;
+  
+  // vector of number of elements in the maps of remote source nodes to local image nodes
   std::vector< uint* > d_n_remote_source_node_map_;
-
+  
   // remote_source_node_map_[group_local_id][i_host][i_block][i]
   std::vector< std::vector< std::vector< uint* > > > h_remote_source_node_map_;
 
@@ -974,6 +980,13 @@ public:
   // Calibrate the maps
   int remoteConnectionMapCalibrate( inode_t n_nodes );
 
+  // get vector of number of elements in the maps of remote source nodes to local image nodes
+  std::vector< uint* >  &getDevNRemoteSourceNodeMap()
+  {
+    return d_n_remote_source_node_map_;
+  }
+
+  // only for debugging, save remote connection P2P maps
   int remoteConnectionMapSave();
 
   // Allocate GPU memory for new remote-source-node-map blocks

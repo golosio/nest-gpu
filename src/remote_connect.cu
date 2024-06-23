@@ -265,6 +265,39 @@ insertNodesInMapKernel( uint** node_map,
   }
 }
 
+// Only for debugging P2P MPI spike communication
+__global__ void
+checkMapIndexToImageNodeKernel( uint n_hosts, uint* host_offset, uint* node_index, uint *n_map,
+                               uint node_index_size, int this_host)
+{
+  const uint i_host = blockIdx.x;
+  if ( i_host < n_hosts )
+  {
+    const uint pos = host_offset[ i_host ];
+    const uint num = host_offset[ i_host + 1 ] - pos;
+    for ( uint i_elem = threadIdx.x; i_elem < num; i_elem += blockDim.x )
+    {
+      const uint i_node_map = node_index[ pos + i_elem ];
+      if ((pos + i_elem)>=node_index_size) {
+	printf("Error in checkMapIndexToImageNodeKernel.\n"
+	       "\t(pos + i_elem)>=node_index_size\n"
+	       "\tthis_host: %d\ti_host: %d\tpos: %d\tnum: %d\ti_elem: %d\tinode_map: %d\n",
+	       this_host, i_host, pos, num, i_elem, i_node_map);
+      }
+      if (i_node_map>=n_map[i_host]) {
+	printf("Error in checkMapIndexToImageNodeKernel.\n"
+	       "\ti_node_map>=n_map[i_host]\n"
+	       "\tthis_host: %d\ti_host: %d\tpos: %d\tnum: %d\ti_elem: %d\tinode_map: %d\n",
+	       this_host, i_host, pos, num, i_elem, i_node_map);
+      }
+      //const uint i_block = i_node_map / node_map_block_size;
+      //const uint i = i_node_map % node_map_block_size;
+      //const uint i_image_node = local_image_node_map[ 0 ][ i_host ][ i_block ][ i ]; 
+      //node_index[ pos + i_elem ] = i_image_node;
+    }
+  }
+}
+
 // This function is used only by point-by-point communication, not by host groups
 __global__ void
 MapIndexToImageNodeKernel( uint n_hosts, uint* host_offset, uint* node_index )
