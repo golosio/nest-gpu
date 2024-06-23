@@ -723,12 +723,15 @@ NESTGPU::CopySpikeFromRemote()
     DBGCUDASYNC;
     RecvSpikeFromRemote_CUDAcp_time_ += ( getRealTime() - time_mark );
 
-    std::vector< uint* > &d_n_remote_source_node_map = conn->getDevNRemoteSourceNodeMap();;
+//#define CHECK_MAP_INDEX_TO_IMAGE_NODE
+#ifdef CHECK_MAP_INDEX_TO_IMAGE_NODE
+    std::vector< uint* > &d_n_remote_source_node_map = conn_->getDevNRemoteSourceNodeMap();;
     uint *n_map = d_n_remote_source_node_map[0];
     checkMapIndexToImageNodeKernel<<< n_hosts_, 1024 >>>(
       n_hosts_, d_ExternalSourceSpikeIdx0, d_ExternalSourceSpikeNodeId,
       n_map, max_remote_spike_num_, this_host_); // n_spike_tot -> max_remote_spike_num_
     CUDASYNC;
+#endif
     
     // convert node map indexes to image node indexes
     MapIndexToImageNodeKernel<<< n_hosts_, 1024 >>>(

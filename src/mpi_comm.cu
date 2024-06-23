@@ -183,7 +183,7 @@ NESTGPU::RecvSpikeFromRemote()
   //MPI_Waitall( n_hosts_ + nhg - 1, recv_mpi_request, statuses );
   MPI_Waitall( 2*n_hosts_, recv_mpi_request, statuses );
 
-/*
+  
   std::vector< std::vector< int > > &host_group = conn_->getHostGroup();
   std::vector<MPI_Comm> &mpi_comm_vect = conn_->getMPIComm();
   uint nhg = host_group.size();
@@ -206,7 +206,7 @@ NESTGPU::RecvSpikeFromRemote()
     MPI_Allgatherv(sendbuf, sendcount, MPI_INT, recvbuf, recvcounts, displs, MPI_INT, mpi_comm_vect[ihg-1]);
 
   }
-*/
+
   /* 
   MPI_Status statuses[ n_hosts_ + nhg - 1];
   recv_mpi_request[ mpi_id ] = MPI_REQUEST_NULL;

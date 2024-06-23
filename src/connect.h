@@ -289,7 +289,7 @@ public:
   virtual int remoteConnectionMapCalibrate( inode_t n_nodes ) = 0;
 
   // get vector of number of elements in the maps of remote source nodes to local image nodes
-  virtual std::vector< uint* >  getDevNRemoteSourceNodeMap() = 0;
+  virtual std::vector< uint* >  &getDevNRemoteSourceNodeMap() = 0;
 
   // only for debugging, save remote connection P2P maps
   virtual int remoteConnectionMapSave() = 0;
