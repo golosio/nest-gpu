@@ -44,6 +44,7 @@ int
 NESTGPU::SendSpikeToRemote( int n_ext_spikes )
 {
 #ifdef HAVE_MPI
+  MPI_Request request;
   int mpi_id, tag = 1; // id is already in the class, can be removed
   MPI_Comm_rank( MPI_COMM_WORLD, &mpi_id );
 
@@ -114,14 +115,12 @@ NESTGPU::SendSpikeToRemote( int n_ext_spikes )
   {
     if (ih == mpi_id || p2p_host_conn_matrix[this_host_][ih]==false)
     { // skip self MPI proc and unused point-to-point MPI communications
-      recv_mpi_request[ n_hosts_ + ih ] = MPI_REQUEST_NULL;
       continue;
     }
     // get index and size of spike packet that must be sent to MPI proc ih
     // array_idx is the first index of the packet for host ih
     int array_idx = h_ExternalTargetSpikeIdx0[ ih ];
     int n_spikes = h_ExternalTargetSpikeIdx0[ ih + 1 ] - array_idx;
-    // nonblocking sent of spike packet to MPI proc ih
     if (n_spikes >= max_spike_per_host_) {
       throw ngpu_exception( std::string("MPI_Isend error from host ") + std::to_string(this_host_) +
 			    " to host " + std::to_string(ih) +
@@ -129,9 +128,9 @@ NESTGPU::SendSpikeToRemote( int n_ext_spikes )
 			    " larger than limit " + std::to_string( max_spike_per_host_ ) +
 			    "\nYou can try to increase the kernel parameter \"max_spike_per_host_fact_\"." );
     }
-
-    MPI_Isend( &h_ExternalTargetSpikeNodeId[ array_idx ], n_spikes, MPI_UNSIGNED, ih, tag, MPI_COMM_WORLD,
-               &recv_mpi_request[ n_hosts_ + ih ] );
+    // nonblocking sent of spike packet to MPI proc ih
+    MPI_Isend( &h_ExternalTargetSpikeNodeId[ array_idx ], n_spikes, MPI_UNSIGNED, ih, tag, MPI_COMM_WORLD, &request );
+    MPI_Request_free(&request);
 
     // printf("MPI_Send nspikes (src,tgt,nspike): "
     //	   "%d %d %d\n", mpi_id, ih, n_spikes);
@@ -178,10 +177,10 @@ NESTGPU::RecvSpikeFromRemote()
       MPI_COMM_WORLD,
       &recv_mpi_request[ i_host ] );
   }
-  MPI_Status statuses[ 2*n_hosts_ ];
+  MPI_Status statuses[ n_hosts_ ];
   //recv_mpi_request[ mpi_id ] = MPI_REQUEST_NULL;
   //MPI_Waitall( n_hosts_ + nhg - 1, recv_mpi_request, statuses );
-  MPI_Waitall( 2*n_hosts_, recv_mpi_request, statuses );
+  MPI_Waitall( n_hosts_, recv_mpi_request, statuses );
 
   
   std::vector< std::vector< int > > &host_group = conn_->getHostGroup();
@@ -235,7 +234,7 @@ NESTGPU::RecvSpikeFromRemote()
   }
   
   // Maybe the barrier is not necessary?
-  //MPI_Barrier( MPI_COMM_WORLD );
+  MPI_Barrier( MPI_COMM_WORLD );
   RecvSpikeFromRemote_comm_time_ += ( getRealTime() - time_mark );
   
   return 0;
@@ -263,7 +262,7 @@ NESTGPU::ConnectMpiInit( int argc, char* argv[] )
   setNHosts( n_hosts );
   setThisHost( this_host );
   //conn_->remoteConnectionMapInit();
-  recv_mpi_request = new MPI_Request[ 2*n_hosts_ ];
+  recv_mpi_request = new MPI_Request[ n_hosts_ ];
 
   return 0;
 #else
