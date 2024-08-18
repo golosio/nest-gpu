@@ -142,9 +142,9 @@ uint* d_ExternalSourceSpikeIdx0;
 std::vector<uint> h_ExternalTargetSpikeNum;
 std::vector< std::vector< int > > h_ExternalSourceSpikeNum;
 std::vector<uint> h_ExternalSourceSpikeIdx0;
-std::vector<uint> h_ExternalTargetSpikeNodeId;
+//std::vector<uint> h_ExternalTargetSpikeNodeId;
 std::vector<std::vector <uint> > h_ExternalSourceSpikeNodeId;
-std::vector<uint> h_ExternalSourceSpikeNodeId_flat;
+//std::vector<uint> h_ExternalSourceSpikeNodeId_flat;
 std::vector <int> h_ExternalSourceSpikeDispl;
 
 // uint *h_ExternalSpikeNodeId;
@@ -351,10 +351,18 @@ NESTGPU::ExternalSpikeInit()
 
   uint n_node = GetNLocalNodes(); // number of nodes
 
-  h_ExternalTargetSpikeIdx0.resize( n_hosts_ + 1 );
   h_ExternalTargetSpikeNum.resize( n_hosts_ );
-  h_ExternalSourceSpikeIdx0.resize( n_hosts_ + 1 );
-  h_ExternalTargetSpikeNodeId.resize( max_remote_spike_num_ );
+  //h_ExternalTargetSpikeIdx0.resize( n_hosts_ + 1 );
+  if (this_host_ == 0) { // master MPI proc
+    h_ExternalTargetSpikeIdx0.resize( n_hosts_ * ( n_hosts_ + 1 + max_remote_spike_num_ ) );
+    h_ExternalSourceSpikeIdx0.resize( n_hosts_ * ( n_hosts_ + 1 + max_remote_spike_num_ ) );
+  }
+  else { // other MPI processes
+    h_ExternalTargetSpikeIdx0.resize( n_hosts_ + 1 + max_remote_spike_num_ );
+    h_ExternalSourceSpikeIdx0.resize( n_hosts_ + 1 + max_remote_spike_num_ );
+  } 
+
+  //h_ExternalTargetSpikeNodeId.resize( max_remote_spike_num_ );
   h_ExternalHostGroupSpikeNodeId.resize( max_remote_spike_num_ );
   h_ExternalSourceSpikeDispl.resize( n_hosts_ );
   
@@ -415,7 +423,7 @@ NESTGPU::ExternalSpikeInit()
     h_ExternalSourceSpikeNum[ihg].resize( host_group[ihg].size() );
     h_ExternalSourceSpikeNodeId[ihg].resize( max_remote_spike_num_ );
   }
-  h_ExternalSourceSpikeNodeId_flat.resize( max_remote_spike_num_ );
+  //h_ExternalSourceSpikeNodeId_flat.resize( max_remote_spike_num_ );
   
   h_ExternalHostGroupSpikeIdx0.resize( nhg + 1 );
   h_ExternalHostGroupSpikeNum.resize( nhg );
@@ -655,26 +663,33 @@ NESTGPU::organizeExternalSpikes( int n_ext_spikes )
 int
 NESTGPU::CopySpikeFromRemote()
 {
-  int n_spike_tot = 0;
-  h_ExternalSourceSpikeIdx0[ 0 ] = 0;
-  // loop on hosts
-  for ( int i_host = 0; i_host < n_hosts_; i_host++ )
-  {
-    int n_spike = h_ExternalSourceSpikeNum[0][ i_host ];
-    h_ExternalSourceSpikeIdx0[ i_host + 1 ] = h_ExternalSourceSpikeIdx0[ i_host ] + n_spike;
-    for ( int i_spike = 0; i_spike < n_spike; i_spike++ )
-    {
-      // pack spikes received from remote hosts
-      h_ExternalSourceSpikeNodeId_flat[ n_spike_tot ] =
-        h_ExternalSourceSpikeNodeId[0][ i_host * max_spike_per_host_ + i_spike ];
-      n_spike_tot++;
-      if ( n_spike_tot >= max_remote_spike_num_ )
-	{
-	  throw ngpu_exception( std::string( "Number of spikes to be received remotely " ) + std::to_string( n_spike_tot )
-				+ " larger than limit " + std::to_string( max_remote_spike_num_ )
-				+ "\nYou can try to increase the kernel parameter \"max_remote_spike_num_fact\"." );
-	} 
-    }
+  int n_spike_tot;
+  uint *h_ExternalSourceSpikeNodeId_flat = &h_ExternalSourceSpikeIdx0[ n_hosts_ + 1 ];
+  if (true) {
+    n_spike_tot = h_ExternalSourceSpikeIdx0[ n_hosts_ ];
+  }   
+  else {
+    n_spike_tot = 0;
+    h_ExternalSourceSpikeIdx0[ 0 ] = 0;
+    // loop on hosts
+    for ( int i_host = 0; i_host < n_hosts_; i_host++ )
+      {
+	int n_spike = h_ExternalSourceSpikeNum[0][ i_host ];
+	h_ExternalSourceSpikeIdx0[ i_host + 1 ] = h_ExternalSourceSpikeIdx0[ i_host ] + n_spike;
+	for ( int i_spike = 0; i_spike < n_spike; i_spike++ )
+	  {
+	    // pack spikes received from remote hosts
+	    h_ExternalSourceSpikeNodeId_flat[ n_spike_tot ] =
+	      h_ExternalSourceSpikeNodeId[0][ i_host * max_spike_per_host_ + i_spike ];
+	    n_spike_tot++;
+	    if ( n_spike_tot >= max_remote_spike_num_ )
+	      {
+		throw ngpu_exception( std::string( "Number of spikes to be received remotely " ) + std::to_string( n_spike_tot )
+				      + " larger than limit " + std::to_string( max_remote_spike_num_ )
+				      + "\nYou can try to increase the kernel parameter \"max_remote_spike_num_fact\"." );
+	      } 
+	  }
+      }
   }
   std::vector<std::vector< std::vector< int64_t > > > &host_group_local_node_index = conn_->getHostGroupLocalNodeIndex();
 
@@ -717,7 +732,7 @@ NESTGPU::CopySpikeFromRemote()
     DBGCUDASYNC;
     // copy to GPU memory packed spikes from remote hosts
     gpuErrchk( cudaMemcpyAsync( d_ExternalSourceSpikeNodeId,
-      &h_ExternalSourceSpikeNodeId_flat[0],
+      h_ExternalSourceSpikeNodeId_flat,
       n_spike_tot * sizeof( uint ),
       cudaMemcpyHostToDevice ) );
     DBGCUDASYNC;
