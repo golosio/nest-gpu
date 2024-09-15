@@ -837,7 +837,20 @@ NESTGPU::SimulationStep()
   }
 
   it_++;
-    
+
+  std::cout << std::endl;
+  std::cout << HostIdStr() << "  SpikeBufferUpdate_time: " << SpikeBufferUpdate_time_ << std::endl;
+  std::cout << HostIdStr() << "  poisson_generator_time: " << poisson_generator_time_ << std::endl;
+  std::cout << HostIdStr() << "  neuron_Update_time: " << neuron_Update_time_ << std::endl;
+  std::cout << HostIdStr() << "  copy_ext_spike_time: " << copy_ext_spike_time_ << std::endl;
+  std::cout << HostIdStr() << "  organizeExternalSpike_time: " << organizeExternalSpike_time_ << std::endl;
+  std::cout << HostIdStr() << "  SendSpikeToRemote_time: " << SendSpikeToRemote_time_ << std::endl;
+  std::cout << HostIdStr() << "  RecvSpikeFromRemote_time: " << RecvSpikeFromRemote_time_ << std::endl;
+  std::cout << HostIdStr() << "  NestedLoop_time: " << NestedLoop_time_ << std::endl;
+  std::cout << HostIdStr() << "  GetSpike_time: " << GetSpike_time_ << std::endl;
+  std::cout << HostIdStr() << "  SpikeReset_time: " << SpikeReset_time_ << std::endl;
+  std::cout << HostIdStr() << "  ExternalSpikeReset_time: " << ExternalSpikeReset_time_ << std::endl;
+
   return 0;
 }
 
