@@ -25,6 +25,9 @@
 #include <list>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <string>
 
 #include "cuda_error.h"
 #include "getRealTime.h"
@@ -38,6 +41,8 @@
 #include <mpi.h>
 MPI_Request* recv_mpi_request;
 #endif
+
+std::ofstream time_ofs;
 
 // Send spikes to remote MPI processes
 int
@@ -265,6 +270,14 @@ NESTGPU::ConnectMpiInit( int argc, char* argv[] )
   //conn_->remoteConnectionMapInit();
   recv_mpi_request = new MPI_Request[ 2*n_hosts_ ];
 
+  std::string filename = std::string("test_time_") + std::to_string(this_host) + ".dat";
+
+
+  time_ofs.open(filename, std::ios::out);
+  if(time_ofs.fail()) {
+    throw ngpu_exception( "Cannot open output file" );
+  }
+ 
   return 0;
 #else
   throw ngpu_exception( "MPI is not available in your build" );
@@ -293,7 +306,9 @@ NESTGPU::MpiFinalize()
       MPI_Finalize();
     }
   }
-
+  
+  time_ofs.close();
+  
   return 0;
 #else
   throw ngpu_exception( "MPI is not available in your build" );

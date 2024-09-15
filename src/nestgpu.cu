@@ -25,6 +25,7 @@
 #include <config.h>
 #include <curand.h>
 #include <iostream>
+#include <fstream>
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
@@ -55,6 +56,8 @@
 ////////////// TEMPORARY
 #include "scan.h"
 //////////////////////
+
+extern std::ofstream time_ofs;
 
 // #define VERBOSE_TIME
 
@@ -838,18 +841,32 @@ NESTGPU::SimulationStep()
 
   it_++;
 
-  std::cout << std::endl;
-  std::cout << HostIdStr() << "  SpikeBufferUpdate_time: " << SpikeBufferUpdate_time_ << std::endl;
-  std::cout << HostIdStr() << "  poisson_generator_time: " << poisson_generator_time_ << std::endl;
-  std::cout << HostIdStr() << "  neuron_Update_time: " << neuron_Update_time_ << std::endl;
-  std::cout << HostIdStr() << "  copy_ext_spike_time: " << copy_ext_spike_time_ << std::endl;
-  std::cout << HostIdStr() << "  organizeExternalSpike_time: " << organizeExternalSpike_time_ << std::endl;
-  std::cout << HostIdStr() << "  SendSpikeToRemote_time: " << SendSpikeToRemote_time_ << std::endl;
-  std::cout << HostIdStr() << "  RecvSpikeFromRemote_time: " << RecvSpikeFromRemote_time_ << std::endl;
-  std::cout << HostIdStr() << "  NestedLoop_time: " << NestedLoop_time_ << std::endl;
-  std::cout << HostIdStr() << "  GetSpike_time: " << GetSpike_time_ << std::endl;
-  std::cout << HostIdStr() << "  SpikeReset_time: " << SpikeReset_time_ << std::endl;
-  std::cout << HostIdStr() << "  ExternalSpikeReset_time: " << ExternalSpikeReset_time_ << std::endl;
+  /*
+  time_ofs << std::endl;
+  time_ofs << HostIdStr() << "  SpikeBufferUpdate_time: " << SpikeBufferUpdate_time_ << std::endl;
+  time_ofs << HostIdStr() << "  poisson_generator_time: " << poisson_generator_time_ << std::endl;
+  time_ofs << HostIdStr() << "  neuron_Update_time: " << neuron_Update_time_ << std::endl;
+  time_ofs << HostIdStr() << "  copy_ext_spike_time: " << copy_ext_spike_time_ << std::endl;
+  time_ofs << HostIdStr() << "  organizeExternalSpike_time: " << organizeExternalSpike_time_ << std::endl;
+  time_ofs << HostIdStr() << "  SendSpikeToRemote_time: " << SendSpikeToRemote_time_ << std::endl;
+  time_ofs << HostIdStr() << "  RecvSpikeFromRemote_time: " << RecvSpikeFromRemote_time_ << std::endl;
+  time_ofs << HostIdStr() << "  NestedLoop_time: " << NestedLoop_time_ << std::endl;
+  time_ofs << HostIdStr() << "  GetSpike_time: " << GetSpike_time_ << std::endl;
+  time_ofs << HostIdStr() << "  SpikeReset_time: " << SpikeReset_time_ << std::endl;
+  time_ofs << HostIdStr() << "  ExternalSpikeReset_time: " << ExternalSpikeReset_time_ << std::endl;
+  */
+  time_ofs << HostIdStr() << "\t";
+  time_ofs << SpikeBufferUpdate_time_ << "\t";
+  time_ofs << poisson_generator_time_ << "\t";
+  time_ofs << neuron_Update_time_ << "\t";
+  time_ofs << copy_ext_spike_time_ << "\t";
+  time_ofs << organizeExternalSpike_time_ << "\t";
+  time_ofs << SendSpikeToRemote_time_ << "\t";
+  time_ofs << RecvSpikeFromRemote_time_ << "\t";
+  time_ofs << NestedLoop_time_ << "\t";
+  time_ofs << GetSpike_time_ << "\t";
+  time_ofs << SpikeReset_time_ << "\t";
+  time_ofs << ExternalSpikeReset_time_ << std::endl;
 
   return 0;
 }
