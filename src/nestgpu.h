@@ -287,6 +287,18 @@ class NESTGPU
 
   double RecvSpikeFromRemote_CUDAcp_time_;
 
+  double WriteRecord_time_;
+  
+  double CopySpikeFromRemote_time_;
+
+  double ClearGetSpikeArrays_time_;
+  
+  double DeliverInputSpikeBuffer_time_;
+
+  double RevSpikeBufferUpdate_time_;
+
+  double RecordSpike_time_;
+
   double BeforeMpiRecv_time_;
 
   double AfterMpiRecv_time_;

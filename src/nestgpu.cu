@@ -221,6 +221,13 @@ NESTGPU::NESTGPU()
   ExternalSpikeReset_time_ = 0;
   BetweenMpiRecv_time_ = 0;
 
+  WriteRecord_time_ = 0;
+  CopySpikeFromRemote_time_ = 0;
+  ClearGetSpikeArrays_time_ = 0;
+  DeliverInputSpikeBuffer_time_ = 0;
+  RevSpikeBufferUpdate_time_ = 0;
+  RecordSpike_time_ = 0;
+
   first_simulation_flag_ = true;
 }
 
@@ -671,7 +678,10 @@ NESTGPU::SimulationStep()
   DBGCUDASYNC;
 
   neuron_Update_time_ += ( getRealTime() - time_mark );
+  
+  time_mark = getRealTime();
   multimeter_->WriteRecords( neural_time_, time_idx );
+  WriteRecord_time_ += ( getRealTime() - time_mark );
   
   if ( n_hosts_ > 1 )
   {
@@ -693,22 +703,30 @@ NESTGPU::SimulationStep()
     time_mark = getRealTime();
     RecvSpikeFromRemote();
     RecvSpikeFromRemote_time_ += ( getRealTime() - time_mark );
+    
+    time_mark = getRealTime();
     CopySpikeFromRemote();
+    CopySpikeFromRemote_time_ += ( getRealTime() - time_mark );
   }
   
   if ( conn_->getSpikeBufferAlgo() == INPUT_SPIKE_BUFFER_ALGO )
   {
+    time_mark = getRealTime();
     conn_->deliverSpikes();
+    DeliverInputSpikeBuffer_time_ += ( getRealTime() - time_mark );
   }
   else
   {
     int n_spikes;
 
+    time_mark = getRealTime();
     // Call will get delayed until ClearGetSpikesArrays()
     // afterwards the value of n_spikes will be available
     gpuErrchk( cudaMemcpyAsync( &n_spikes, d_SpikeNum, sizeof( int ), cudaMemcpyDeviceToHost ) );
     ClearGetSpikeArrays();
     gpuErrchk( cudaDeviceSynchronize() );
+    ClearGetSpikeArrays_time_ += ( getRealTime() - time_mark );
+    
     if ( n_spikes > 0 )
     {
       time_mark = getRealTime();
@@ -801,7 +819,7 @@ NESTGPU::SimulationStep()
   {
     if ( conn_->getNRevConn() > 0 )
     {
-      // time_mark = getRealTime();
+      time_mark = getRealTime();
       revSpikeReset<<< 1, 1 >>>();
       gpuErrchk( cudaPeekAtLastError() );
       revSpikeBufferUpdate<<< ( GetNLocalNodes() + 1023 ) / 1024, 1024 >>>( GetNLocalNodes() );
@@ -823,10 +841,11 @@ NESTGPU::SimulationStep()
           throw ngpu_exception( "Unrecognized connection structure type index" );
         }
       }
-      // RevSpikeBufferUpdate_time_ += (getRealTime() - time_mark);
+      RevSpikeBufferUpdate_time_ += (getRealTime() - time_mark);
     }
   }
 
+  time_mark = getRealTime();
   for ( unsigned int i = 0; i < node_vect_.size(); i++ )
   {
     // if spike times recording is activated for node group...
@@ -841,6 +860,7 @@ NESTGPU::SimulationStep()
       }
     }
   }
+  RecordSpike_time_ += (getRealTime() - time_mark);
 
   it_++;
 
@@ -884,6 +904,12 @@ NESTGPU::SimulationStep()
   fprintf(time_fp, "%.10e\t", GetSpike_time_);
   fprintf(time_fp, "%.10e\t", SpikeReset_time_);
   fprintf(time_fp, "%.10e\t", ExternalSpikeReset_time_);
+  fprintf(time_fp, "%.10e\t", WriteRecord_time_);
+  fprintf(time_fp, "%.10e\t", CopySpikeFromRemote_time_);
+  fprintf(time_fp, "%.10e\t", ClearGetSpikeArrays_time_);
+  fprintf(time_fp, "%.10e\t", DeliverInputSpikeBuffer_time_);
+  fprintf(time_fp, "%.10e\t", RevSpikeBufferUpdate_time_);
+  fprintf(time_fp, "%.10e\t", RecordSpike_time_);
   fprintf(time_fp, "%.10e\n", BetweenMpiRecv_time_);
   fflush(time_fp);
   
