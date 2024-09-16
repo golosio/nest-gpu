@@ -287,6 +287,12 @@ class NESTGPU
 
   double RecvSpikeFromRemote_CUDAcp_time_;
 
+  double BeforeMpiRecv_time_;
+
+  double AfterMpiRecv_time_;
+
+  double BetweenMpiRecv_time_;
+  
   bool first_simulation_flag_;
 
 public:

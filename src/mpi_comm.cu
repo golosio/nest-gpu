@@ -42,7 +42,8 @@
 MPI_Request* recv_mpi_request;
 #endif
 
-std::ofstream time_ofs;
+//std::ofstream time_ofs;
+FILE *time_fp;
 
 // Send spikes to remote MPI processes
 int
@@ -157,6 +158,9 @@ int
 NESTGPU::RecvSpikeFromRemote()
 
 {
+  BeforeMpiRecv_time_ = getRealTime() - start_real_time_;
+  BetweenMpiRecv_time_ += (BeforeMpiRecv_time_ - AfterMpiRecv_time_); 
+
 #ifdef HAVE_MPI
   int mpi_id, tag = 1; // id is already in the class, can be removed
   MPI_Comm_rank( MPI_COMM_WORLD, &mpi_id );
@@ -242,6 +246,8 @@ NESTGPU::RecvSpikeFromRemote()
   // Maybe the barrier is not necessary?
   //MPI_Barrier( MPI_COMM_WORLD );
   RecvSpikeFromRemote_comm_time_ += ( getRealTime() - time_mark );
+
+  AfterMpiRecv_time_ = getRealTime() - start_real_time_;
   
   return 0;
 #else
@@ -270,13 +276,15 @@ NESTGPU::ConnectMpiInit( int argc, char* argv[] )
   //conn_->remoteConnectionMapInit();
   recv_mpi_request = new MPI_Request[ 2*n_hosts_ ];
 
-  std::string filename = std::string("test_time_") + std::to_string(this_host) + ".dat";
+  //std::string filename = std::string("/p/scratch/icei-hbp-2020-0007/mam/tmp_dbg/test_time_") + std::to_string(this_host) + ".dat";
+  char filename[1000];
+  sprintf(filename, "test_time_%d.dat", this_host);
+  time_fp = fopen(filename, "w");
 
-
-  time_ofs.open(filename, std::ios::out);
-  if(time_ofs.fail()) {
-    throw ngpu_exception( "Cannot open output file" );
-  }
+  //time_ofs.open(filename); //, std::ios::out);
+  //if(time_ofs.fail()) {
+  //  throw ngpu_exception( "Cannot open output file" );
+  //}
  
   return 0;
 #else
@@ -307,7 +315,8 @@ NESTGPU::MpiFinalize()
     }
   }
   
-  time_ofs.close();
+  //time_ofs.close();
+  fclose(time_fp);
   
   return 0;
 #else

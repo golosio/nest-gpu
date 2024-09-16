@@ -28,6 +28,7 @@
 #include <fstream>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 
 #include "cuda_error.h"
@@ -57,7 +58,8 @@
 #include "scan.h"
 //////////////////////
 
-extern std::ofstream time_ofs;
+//extern std::ofstream time_ofs;
+extern FILE *time_fp;
 
 // #define VERBOSE_TIME
 
@@ -217,6 +219,7 @@ NESTGPU::NESTGPU()
   GetSpike_time_ = 0;
   SpikeReset_time_ = 0;
   ExternalSpikeReset_time_ = 0;
+  BetweenMpiRecv_time_ = 0;
 
   first_simulation_flag_ = true;
 }
@@ -855,6 +858,7 @@ NESTGPU::SimulationStep()
   time_ofs << HostIdStr() << "  SpikeReset_time: " << SpikeReset_time_ << std::endl;
   time_ofs << HostIdStr() << "  ExternalSpikeReset_time: " << ExternalSpikeReset_time_ << std::endl;
   */
+  /*  
   time_ofs << HostIdStr() << "\t";
   time_ofs << SpikeBufferUpdate_time_ << "\t";
   time_ofs << poisson_generator_time_ << "\t";
@@ -867,7 +871,22 @@ NESTGPU::SimulationStep()
   time_ofs << GetSpike_time_ << "\t";
   time_ofs << SpikeReset_time_ << "\t";
   time_ofs << ExternalSpikeReset_time_ << std::endl;
-
+  */
+  fprintf(time_fp, "%d\t", this_host_);
+  fprintf(time_fp, "%.10e\t", SpikeBufferUpdate_time_);
+  fprintf(time_fp, "%.10e\t", poisson_generator_time_);
+  fprintf(time_fp, "%.10e\t", neuron_Update_time_);
+  fprintf(time_fp, "%.10e\t", copy_ext_spike_time_);
+  fprintf(time_fp, "%.10e\t", organizeExternalSpike_time_);
+  fprintf(time_fp, "%.10e\t", SendSpikeToRemote_time_);
+  fprintf(time_fp, "%.10e\t", RecvSpikeFromRemote_time_);
+  fprintf(time_fp, "%.10e\t", NestedLoop_time_);
+  fprintf(time_fp, "%.10e\t", GetSpike_time_);
+  fprintf(time_fp, "%.10e\t", SpikeReset_time_);
+  fprintf(time_fp, "%.10e\t", ExternalSpikeReset_time_);
+  fprintf(time_fp, "%.10e\n", BetweenMpiRecv_time_);
+  fflush(time_fp);
+  
   return 0;
 }
 
