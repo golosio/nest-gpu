@@ -1,1 +1,0 @@
-Dinamic library libnestgpu should be produced in this directory.
